@@ -2,21 +2,6 @@
 
 # openstdin(1): opens stdin through the open(1) command
 #
-# The standard input is copied into a temporary file which is then
-# renamed according to either a specified file extension or by
-# looking at the content's MIME type. That file is then open through
-# the open(1) command.
-#
-# Mappings between MIME types and extensions are looked up into a file
-# defined by the MIMETYPES environment variable. This file must be formatted
-# like the Apache mime.types file. If this file does not exist, defaults
-# mappings for text/html and text/plain are being used.
-#
-# Temporary files are deleted after a specifiable delay. Deletion is
-# done in a subprocess unless the -w option is given. openstdin always
-# exits with the error code returned by open(1) unless improperly
-# invoked.
-#
 # Yves Arrouye
  
 : ${TMPDIR:=/tmp}
@@ -47,7 +32,7 @@ usage() {
         u=u
         exec >&2
     fi
-    echo $u"sage: $me [-h] [-k [seconds]] [-w] [--mime-types file] [mime-type | ext] [-- arg ...]"
+    echo $u"sage: $me [-h] [-k [seconds]] [--mime-types file] [mime-type | ext] [-- arg ...]"
     if [ "$1" -eq 0 ]
     then
 	if [ ! -z "$default_MIMETYPES" ]
@@ -59,8 +44,7 @@ usage() {
        -h              Show this message
        --mime-types file  Use given file to map MIME types to file extensions (defaults to \$MIMETYPES$ordefmimetypesmsg)
        -k [ seconds ]  Keep file for that many seconds (defaults to $default_seconds)
-       -w              Wait for the file to be deleted before exiting
-       mime-type       Force the MIME type (do not autodetect)
+       mime-type       Force the MIME type
        ext             Force the file extension
        -- arg ...      Passes arg and subsequent arguments to open(1)
 EOF
@@ -97,9 +81,6 @@ do
 	    else
 		seconds=-1
 	    fi
-	    ;;
-	-w)
-	    wait=yes
 	    ;;
 	--)
 	    shift
@@ -177,12 +158,7 @@ res=$?
 
 if [ $seconds -ge 0 ]
 then
-    if [ -z "$wait" ]
-    then
-	sleepthendeletefile &
-    else
-	sleepthendeletefile
-    fi
+    sleepthendeletefile &
 fi
 
 exit $res

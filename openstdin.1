@@ -18,7 +18,6 @@
 .Op Fl h                        \" [-h]
 .Op Fl Fl mime-types Ar file    \" [--mime-types file]
 .Op Fl k Ar [ seconds ]         \" [-k [seconds]]
-.Op Fl w                        \" [-w]
 .Op Ar mime-type | Ar ext       \" [mime-type | ext]
 .Op Fl Fl Ar arg ...            \" [-n]
 .Sh DESCRIPTION          \" Section Header - required - don't modify
@@ -71,14 +70,6 @@ Keep the temporary file for the given number of
 If
 .Ar seconds
 is not given, the temporary file is not deleted.
-.It Fl w
-Wait until the temporary file is deleted to exit. Note that if
-.Fl k
-is called without a
-.Ar seconds
-argument then
-.Nm
-will not exit.
 .It Fl Ar mime-type | Ar ext
 Force either the MIME type to be
 .Ar mime-type
