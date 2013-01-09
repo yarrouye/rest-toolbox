@@ -1,0 +1,189 @@
+#! /bin/sh
+
+# openstdin(1): opens stdin through the open(1) command
+#
+# The standard input is copied into a temporary file which is then
+# renamed according to either a specified file extension or by
+# looking at the content's MIME type. That file is then open through
+# the open(1) command.
+#
+# Mappings between MIME types and extensions are looked up into a file
+# defined by the MIMETYPES environment variable. This file must be formatted
+# like the Apache mime.types file. If this file does not exist, defaults
+# mappings for text/html and text/plain are being used.
+#
+# Temporary files are deleted after a specifiable delay. Deletion is
+# done in a subprocess unless the -w option is given. openstdin always
+# exits with the error code returned by open(1) unless improperly
+# invoked.
+#
+# Yves Arrouye
+ 
+: ${TMPDIR:=/tmp}
+: ${OPENCMD:=open}
+
+me=`basename $0`
+
+default_MIMETYPES1=/etc/apache2/mime.types
+default_MIMETYPES2=/usr/share/cups/mime/mime.types
+if [ -f "$default_MIMETYPES1" ]
+then
+    default_MIMETYPES=$default_MIMETYPES1
+else
+    if [ -f "$default_MIMETYPES2" ]
+        default_MIMETYPES=$default_MIMETYPES2
+    else
+        default_MIMETYPES=
+    fi
+fi
+
+default_seconds=5
+
+usage() {
+    if [ "$1" -eq 0 ]
+    then
+        u=U
+    else
+        u=u
+        exec >&2
+    fi
+    echo $u"sage: $me [-h] [-k [seconds]] [-w] [--mime-types file] [mime-type | ext] [-- arg ...]"
+    if [ "$1" -eq 0 ]
+    then
+	if [ ! -z "$default_MIMETYPES" ]
+	then
+	    ordefmimetypesmsg=" or $default_MIMETYPES1 or $default_MIMETYPES2"
+	fi
+        cat <<EOF
+
+       -h              Show this message
+       --mime-types file  Use given file to map MIME types to file extensions (defaults to \$MIMETYPES$ordefmimetypesmsg)
+       -k [ seconds ]  Keep file for that many seconds (defaults to $default_seconds)
+       -w              Wait for the file to be deleted before exiting
+       mime-type       Force the MIME type (do not autodetect)
+       ext             Force the file extension
+       -- arg ...      Passes arg and subsequent arguments to open(1)
+EOF
+    fi
+    exit $1
+}
+
+sleepthendeletefile() {
+    sleep $seconds && rm -f $tmpfile.$fileext
+}
+
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	-h)
+	    usage 0
+	    ;;
+	--mime-types)
+	    if [ $# -lt 2 ]
+	    then
+		usage 1
+	    fi
+	    MIMETYPES=$1
+	    ;;
+	-k)
+	    if [ $# -gt 1 ]
+	    then
+		shift
+		seconds=$1
+		if [ "`echo $seconds | sed '/^[0-9][0-9]*$/d'`" != "" ]
+		then
+		    usage 1
+		fi
+	    else
+		seconds=-1
+	    fi
+	    ;;
+	-w)
+	    wait=yes
+	    ;;
+	--)
+	    shift
+	    break
+	    ;;
+	-*)
+	    usage 1
+	    ;;
+	*)
+	    if [ -z "$mimetype" -a -z "$fileext" ]
+	    then
+		case "$1" in
+		    */*)
+			mimetype=$1
+			;;
+		    *)
+			fileext=$1
+			;;
+		esac
+	    else
+		usage 1
+	    fi
+	    ;;
+    esac
+    shift
+done
+
+: ${seconds:=$default_seconds}
+
+if [ ! -z "$MIMETYPES" -o -f "$default_MIMETYPES" ]
+then
+    : ${MIMETYPES:=$default_MIMETYPES}
+    if [ ! -r "$MIMETYPES" ]
+    then
+	>&2 echo "$me: cannot open MIME types file: $MIMETYPES"
+  	exit 2
+    fi
+fi
+
+tmpfile=$TMPDIR/$me.$$
+
+cat >$tmpfile
+
+if [ -z "$fileext" ]
+then
+    if [ -z "$mimetype" ]
+    then
+        mimetype=`file -bI $tmpfile`
+    fi
+    mimetype=`echo "$mimetype" | sed 's/;.*$//'`
+    if [ -r "$MIMETYPES" ]
+    then
+	mimeerrormsg="cannot find MIME type in $MIMETYPES"
+	fileext=`sed -n "s,^$mimetype"'[^a-z0-9]*\([^ (]*\).*,\1,p' $MIMETYPES | fgrep -v \(`
+    else
+	mimeerrormsg="cannot determine extension for MIME type"
+        case $mimetype in
+            text/html)
+	        fileext=html
+	        ;;
+            text/plain)
+	        fileext=txt
+                ;;
+        esac
+    fi
+    if [ -z "$fileext" ]
+    then
+        >&2 echo $me: $mimeerrormsg: $mimetype
+        exit 3
+    fi
+fi
+
+mv $tmpfile $tmpfile.$fileext && $OPENCMD "$@" $tmpfile.$fileext
+res=$?
+
+if [ $seconds -ge 0 ]
+then
+    if [ -z "$wait" ]
+    then
+	sleepthendeletefile &
+    else
+	sleepthendeletefile
+    fi
+fi
+
+exit $res
+
