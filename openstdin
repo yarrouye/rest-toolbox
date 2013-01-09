@@ -16,6 +16,7 @@ then
     default_MIMETYPES=$default_MIMETYPES1
 else
     if [ -f "$default_MIMETYPES2" ]
+    then
         default_MIMETYPES=$default_MIMETYPES2
     else
         default_MIMETYPES=
@@ -32,7 +33,7 @@ usage() {
         u=u
         exec >&2
     fi
-    echo $u"sage: $me [-h] [-k [seconds]] [--mime-types file] [mime-type | ext] [-- arg ...]"
+    echo $u"sage: $me [-h] [--mime-types file] [-k [seconds]] [-o file | mime-type | ext] [-- arg ...]"
     if [ "$1" -eq 0 ]
     then
 	if [ ! -z "$default_MIMETYPES" ]
@@ -43,7 +44,8 @@ usage() {
 
        -h              Show this message
        --mime-types file  Use given file to map MIME types to file extensions (defaults to \$MIMETYPES$ordefmimetypesmsg)
-       -k [ seconds ]  Keep file for that many seconds (defaults to $default_seconds)
+       -k [ seconds ]  Keep file for that many seconds (defaults to $default_seconds) or forever if no seconds are specified
+       -o file         Save standard input into file (use -k to keep it)
        mime-type       Force the MIME type
        ext             Force the file extension
        -- arg ...      Passes arg and subsequent arguments to open(1)
@@ -53,7 +55,7 @@ EOF
 }
 
 sleepthendeletefile() {
-    sleep $seconds && rm -f $tmpfile.$fileext
+    sleep $seconds && rm -f $tmpfile
 }
 
 while [ $# -ne 0 ]
@@ -70,17 +72,21 @@ do
 	    MIMETYPES=$1
 	    ;;
 	-k)
-	    if [ $# -gt 1 ]
+	    seconds=$2
+	    if echo $seconds | grep '^[0-9][0-9]*$'
 	    then
 		shift
-		seconds=$1
-		if [ "`echo $seconds | sed '/^[0-9][0-9]*$/d'`" != "" ]
-		then
-		    usage 1
-		fi
 	    else
 		seconds=-1
 	    fi
+	    ;;
+        -o)
+	    if [ $# -lt 2 ]
+	    then
+		usage 1
+	    fi
+	    shift
+	    outfile=$1
 	    ;;
 	--)
 	    shift
@@ -120,46 +126,74 @@ then
     fi
 fi
 
-tmpfile=$TMPDIR/$me.$$
+if [ "$outfile" = - -o -z "$outfile" ]
+then
+    tmpfile=$TMPDIR/$me.$$
+    forcekeepfile=0
+    needsext=1
+else
+    tmpfile=$outfile
+    forcekeepfile=0
+    case "$tmpfile" in
+	*.*)
+	    needsext=0
+	    ;;
+	*)
+	    needsext=1
+	    ;;
+    esac
+fi
 
 cat >$tmpfile
 
-if [ -z "$fileext" ]
+if [ $needsext -eq 1 ]
 then
-    if [ -z "$mimetype" ]
-    then
-        mimetype=`file -bI $tmpfile`
-    fi
-    mimetype=`echo "$mimetype" | sed 's/;.*$//'`
-    if [ -r "$MIMETYPES" ]
-    then
-	mimeerrormsg="cannot find MIME type in $MIMETYPES"
-	fileext=`sed -n "s,^$mimetype"'[^a-z0-9]*\([^ (]*\).*,\1,p' $MIMETYPES | fgrep -v \(`
-    else
-	mimeerrormsg="cannot determine extension for MIME type"
-        case $mimetype in
-            text/html)
-	        fileext=html
-	        ;;
-            text/plain)
-	        fileext=txt
-                ;;
-        esac
-    fi
     if [ -z "$fileext" ]
     then
-        >&2 echo $me: $mimeerrormsg: $mimetype
-        exit 3
+	if [ -z "$mimetype" ]
+	then
+            mimetype=`file -bI $tmpfile`
+	fi
+	mimetype=`echo "$mimetype" | sed 's/;.*$//'`
+	if [ -r "$MIMETYPES" ]
+	then
+	    mimeerrormsg="cannot find MIME type in $MIMETYPES"
+	    fileext=`sed -n "s,^$mimetype"'[^a-z0-9]*\([^ (]*\).*,\1,p' $MIMETYPES | fgrep -v \(`
+	else
+	    mimeerrormsg="cannot determine extension for MIME type"
+            case $mimetype in
+		text/html)
+	            fileext=html
+	            ;;
+		text/plain)
+	            fileext=txt
+                    ;;
+            esac
+	fi
+	if [ -z "$fileext" ]
+	then
+            >&2 echo $me: $mimeerrormsg: $mimetype
+            exit 3
+	fi
+    fi
+
+    if mv $tmpfile $tmpfile.$fileext
+    then
+	tmpfile=$tmpfile.$fileext
     fi
 fi
 
-mv $tmpfile $tmpfile.$fileext && $OPENCMD "$@" $tmpfile.$fileext
+$OPENCMD "$@" $tmpfile
 res=$?
 
-if [ $seconds -ge 0 ]
+if [ "$outfile" = - ]
+then
+    cat $tmpfile
+fi
+
+if [ $forcekeepfile -eq 0 -a $seconds -ge 0 ]
 then
     sleepthendeletefile &
 fi
 
 exit $res
-

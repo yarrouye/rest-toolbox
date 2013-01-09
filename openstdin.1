@@ -18,18 +18,21 @@
 .Op Fl h                        \" [-h]
 .Op Fl Fl mime-types Ar file    \" [--mime-types file]
 .Op Fl k Ar [ seconds ]         \" [-k [seconds]]
-.Op Ar mime-type | Ar ext       \" [mime-type | ext]
+.Op Fl o Ar file | mime-type | Ar ext       \" [-o file | mime-type | ext]
 .Op Fl Fl Ar arg ...            \" [-n]
 .Sh DESCRIPTION          \" Section Header - required - don't modify
 .Nm
 opens standard input through the
 .Xr open 1
 command.
-The standard input is copied into a temporary file which is then renamed
-with an appropriate file extension to be opened in the appropriate application
+If an output
+.Ar file
+is not specified, one is created in the temporary dictory.
+If it does not have an extension, the output file is renamed with the proper
+file extension in order to be opened in the appropriate application
 by the
 .Xr open 1
-command.
+command. If it has an extension, that extension overrides that behavior.
 .Pp
 File extensions are chosen by picking the first listed extension for the
 appropriate MIME type in a MIME type to file extensions mapping file.
@@ -70,12 +73,24 @@ Keep the temporary file for the given number of
 If
 .Ar seconds
 is not given, the temporary file is not deleted.
-.It Fl Ar mime-type | Ar ext
-Force either the MIME type to be
+.It Fl o Ar file | Ar mime-type | Ar ext
+If
+.Ar file
+is given, copy standard output to it. If a file extension is present,
+acts as if
+.Ar ext
+has been given.
+If
+.Ar file
+is
+.Cm -
+then output will go to a temporary file as well as to standard output.
+Giving either
 .Ar mime-type
-or the file extension to be
-.Ar ext ,
-bypassing any automatic detection of either.
+or
+.Ar ext
+forces the MIME type or file extension, bypassing any automatic
+detection of either.
 .It Fl Fl Ar arg ...
 Passes
 .Ar arg
