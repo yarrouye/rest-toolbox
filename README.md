@@ -1,5 +1,10 @@
+REST Toolbox
+============
+
+A small collection of commands making life easier when interacting with REST services.
+
 Open Standard Input in the Right Application
-============================================
+--------------------------------------------
 
 openstdin(1) is a simple script that allows one to open standard input in an
 appropriate application as determined by open(1).
