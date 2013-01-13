@@ -1,0 +1,190 @@
+#! /bin/sh
+
+# mime2ext(1): maps MIME types to file extensions
+#
+# Yves Arrouye
+
+: ${TMPDIR:=/tmp}
+me=`basename $0`
+
+default_MIMETYPES1=/etc/apache2/mime.types
+default_MIMETYPES2=/usr/share/cups/mime/mime.types
+if [ -f "$default_MIMETYPES1" ]
+then
+    default_MIMETYPES=$default_MIMETYPES1
+else
+    if [ -f "$default_MIMETYPES2" ]
+    then
+        default_MIMETYPES=$default_MIMETYPES2
+    else
+        default_MIMETYPES=
+    fi
+fi
+
+usage() {
+    if [ "$1" -eq 0 ]
+    then
+        u=U
+    else
+        u=u
+        exec >&2
+    fi
+    echo $u"sage: $me [--help] [--mime-types file] [-C] [-E] [-h | --no-filename] [-m glob-pattern] [file ...]"
+    if [ "$1" -eq 0 ]
+    then
+	if [ -n "$default_MIMETYPES" ]
+	then
+	    ordefmimetypesmsg=" or $default_MIMETYPES1 or $default_MIMETYPES2"
+	fi
+        cat <<EOF
+
+       --help                Show this message
+       --mime-types file     Use given file to map MIME types to file extensions (defaults to \$MIMETYPES$ordefmimetypesmsg)
+       -C                    Do not print charset information
+       -E                    Do not print file extensions
+       -h, --no-filename     Do not print filename
+       -m glob-pattern       Exit with 0 if the base MIME type matches glob-pattern for all files, with 1 otherwise
+
+EOF
+    fi
+    exit $1
+}
+
+while [ $# -ne 0 ]
+do
+    case "$1" in
+        -[^-]*)
+	    for l in `echo $1 | sed -e 's/^-//' -e 's/\(.\)/\1 /g'`
+	    do
+	        case "$l" in
+		    C)
+			nocharset=yes
+			;;
+		    E)
+			nofileexts=yes
+			;;
+		    h)
+			nofilename=yes
+			;;
+		    m)
+			if [ $# -lt 2 ]
+			then
+			    usage 1
+			fi
+			shift
+			pattern=$1
+			;;
+		    *)
+			usage 1
+			;;
+		esac
+	    done
+	    ;;
+	--help)
+	    usage 0
+	    ;;
+	--mime-types)
+	    if [ $# -lt 2 ]
+	    then
+		usage 1
+	    fi
+	    shift
+	    MIMETYPES=$1
+	    ;;
+	--no-filename)
+	    nofilename=yes
+	    ;;
+	--*)
+	    usage 1
+	    ;;
+	*)
+	    break
+	    ;;
+    esac
+    shift
+done
+
+if [ -n "$MIMETYPES" -o -f "$default_MIMETYPES" ]
+then
+    : ${MIMETYPES:=$default_MIMETYPES}
+    if [ ! -r "$MIMETYPES" ]
+    then
+	>&2 echo "$me: cannot open MIME types file: $MIMETYPES"
+  	exit 2
+    fi
+fi
+
+if [ $# -eq 0 ]
+then
+    extrain=-
+fi
+
+res=0
+
+for infile in "$@" $extrain
+do
+    infile=${infile--}
+    if [ "$infile" = - ]
+    then
+	tmpfile=$TMPDIR/$me.$$
+	trap "rm -f $tmpfile 2>/dev/null" 0
+	cat >$tmpfile
+	infile=$tmpfile
+    fi
+
+    fullmimetype=`file -bI $infile`
+    mimetype=`echo $fullmimetype | sed 's/;.*$//'`
+
+    if [ -r "$MIMETYPES" -a -z "$nofileexts" ]
+    then
+	mimeerrormsg="cannot find MIME type in $MIMETYPES"
+	fileexts=`sed -n "s,^$mimetype"'[^a-z0-9]*\(.*\).*,\1,p' $MIMETYPES | sed 's/[a-z0-9]*(.*//'`
+    else
+	mimeerrormsg="cannot determine extension for MIME type"
+	case $mimetype in
+	    text/html)
+		fileexts=html htm
+		;;
+	    text/plain)
+		fileexts=txt
+		;;
+	esac
+    fi
+
+    if [ -z "$pattern" ]
+    then
+	if [ $# -gt 1 -a -z "$nofilename" ]
+	then
+	    header="$infile:"
+	else
+	    header=
+	fi
+	if [ -z "$nocharset" ]
+	then
+	    printmimetype=$fullmimetype
+	else
+	    printmimetype=$mimetype
+	fi
+	echo "$header$printmimetype	$fileexts"
+    else
+	case "$mimetype" in
+	    $pattern)
+		;;
+	    *)
+		res=1
+		;;
+	esac
+    fi
+
+    if [ -f "$tmpfile" ]
+    then
+	rm -f $tmpfile
+    fi
+
+    if [ $res -eq 1 ]
+    then
+	break
+    fi
+done
+
+exit $res
