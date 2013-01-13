@@ -15,7 +15,7 @@
 .Nd open standard input according to its type
 .Sh SYNOPSIS             \" Section Header - required - don't modify
 .Nm
-.Op Fl h                        \" [-h]
+.Op Fl Fl help                  \" [--help]
 .Op Fl Fl mime-types Ar file    \" [--mime-types file]
 .Op Fl k Ar [ seconds ]         \" [-k [seconds]]
 .Op Fl o Ar file | mime-type | Ar ext       \" [-o file | mime-type | ext]
@@ -57,7 +57,7 @@ determines the standard input contents' MIME type using
 .Pp
 The following options are available (options cannot be combined in a single argument):
 .Bl -tag -width -indent  \" Differs from above in tag removed 
-.It Fl h               \"-a flag as a list item
+.It Fl Fl help               \"-a flag as a list item
 Prints a help usage message documenting each option.
 .It Fl Fl mime-types Ar file               \"-a flag as a list item
 Use
