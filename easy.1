@@ -134,7 +134,10 @@ Do not bake arguments.
 Cook the response, i.e. format all response headers and the response contents
 using
 .Xr pretty 1 .
-Cooked responses are very easy for humans to process.
+Cooked responses are very easy for humans to process. If
+.Nm
+is not writing to a terminal then colors are not used unless the option
+is given twice.
 .It Fl Fl endpoint Ar endpoint
 Set the endpoint of the server or service to be called.
 .It Fl q , Fl Fl query [ Ar query ]

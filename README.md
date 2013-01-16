@@ -74,12 +74,20 @@ with an HTTP server, it can cook the server's responses if passed the
 Cooking the response has a big impact on what one sees. The response is
 cooked by easy(1) according to the following recipe:
 
-- Prettifies the HTTP response headers
+- Prettifies (formats and colorizes if possible) the HTTP response headers
 - Produce a blank line
 - Prettifies the response's contents
 
+easy(1) calls pretty(1) for prettification. See Prettify Content below.
+
 Cooked mode makes for a very pretty interaction. For quick testing of REST
-services, `-jC` is a must.
+services, `-jC` is a must. Add baking if you need the convenience, too!
+
+If easy(1) is not outputing to a terminal, cooking will skip colorization.
+This is useful so you can process the cooked output.
+You can however overcook it by spcify `-C` or `--cooked` more than once,
+and this will make colorization stick. This is a good option if you want
+to page the output using `less -R` or an equivalent command.
 
 *Posting, Putting, Patching: When Data Are Needed*
 
@@ -206,7 +214,26 @@ different arguments for different methods:
     $ 
 
 
---------------------------------------------
+Determine the MIME Type of a File
+---------------------------------
+
+mime(1) determines the MIME type of a file and is able to print the common file
+extensions associated to that MIME type. It can also be used to test whether some
+content is of a given MIME type.
+
+
+Prettify Content
+----------------
+
+pretty(1) formats (pretty prints) and colorizes content. The pretty.commands(5)
+file maps MIME types to formatting and colorization commands appropriate for
+a variety of MIME types.
+
+In order for prettification to happen, easy(1) needs to be able to find
+pygmentize(1) (from the pygments project at http://pygments.org) and json(1)
+(from https://github.com/trentm/json).
+
+
 Open Standard Input in the Right Application
 --------------------------------------------
 

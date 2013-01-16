@@ -96,14 +96,18 @@ callcurl() {
 	curl "$@" -D $hdrfile -o $contentfile
 	res=$?
 
-	pretty $hdrfile 2>/dev/null
+    	if [ $cooked -gt 1 ]
+	then
+	    prettyarg=-C
+	fi
+	pretty $prettyarg $hdrfile 2>/dev/null
 	echo
 	type="`sed -n 's/^Content-Type:[ 	]*\([^;]*\).*$/\1/p' $hdrfile | tr -d '[\012\015]'`"
 	if [ -z "$type" ]
 	then
-	    type="`mime -C -E $contentfile 2>/dev/null`"
+	    type="`mime -qEC $contentfile 2>/dev/null`"
 	fi
-	pretty $contentfile 2>/dev/null
+	pretty $prettyarg $contentfile 2>/dev/null
 	rm -f $hdrfile $contentfile
     else
         curl "$@"
