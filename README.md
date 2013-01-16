@@ -74,14 +74,15 @@ with an HTTP server, it can cook the server's responses if passed the
 Cooking the response has a big impact on what one sees. The response is
 cooked by easy(1) according to the following recipe:
 
-- Prettifies (formats and colorizes if possible) the HTTP response headers
+- Prettify (formats and colorizes if possible) the HTTP response headers
 - Produce a blank line
-- Prettifies the response's contents
+- Prettify the response's contents
 
 easy(1) calls pretty(1) for prettification. See Prettify Content below.
 
 Cooked mode makes for a very pretty interaction. For quick testing of REST
 services, `-jC` is a must. Add baking if you need the convenience, too!
+One can request no cooking by using the `-R` or `--raw` option.
 
 If easy(1) is not outputing to a terminal, cooking will skip colorization.
 This is useful so you can process the cooked output.
@@ -98,7 +99,7 @@ resource in REST services:
 
 Make a POST and specify the data on the command line:
 
-    $ easy -j POST /resources '{ "key": "value" }'
+    $ easy -jB POST /resources '{ "key": "value" }'
 
 Make POST and create the data using your favorite editor. The editor will
 be taken from `$VISUAL`, `$EDITOR`, vim(1) and vi(1) in this order. If
@@ -114,10 +115,9 @@ flag tells easy(1) to edit the data that were provided):
 
 Update a resource with PUT:
 
-    $ easy PUT -j /resources/1234 '{ "key": "something" }'
+    $ easy PUT -jB /resources/1234 '{ "key": "something" }'
 
-You get the idea... One can request no cooking by using the `-R` or
-`--raw` option.
+You get the idea...
 
 *Putting, Patching Etc. Through a Picky Gateway or Firewall*
 
