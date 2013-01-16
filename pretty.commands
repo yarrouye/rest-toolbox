@@ -21,5 +21,8 @@ application/json	pretty=json -q
 text/html		pretty=tidy -q -asxhtml
 			color=pygmentize -l html
 
+text/xml		pretty=tidy -q -xml
+			color=pygmentize -l xml
+
 text/x-http		color=pygmentize -l http
 
