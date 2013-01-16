@@ -22,7 +22,7 @@ usage() {
         u=u
         exec >&2
     fi
-    echo $u"sage: $me [--help] [--print [-s] [-p prefix] [[no]env,[no]func,all]] [--cmd file] [--no-env] [--no-extras] [-j, --json] [-C, --cooked] [--endpoint endpoint] [-q, --query query] [-O, --override] [-V]  method resource [data] [curlopt ...]"
+    echo $u"sage: $me [--help] [--print [-s] [-p prefix] [[no]env,[no]func,all]] [--cmd file] [--no-env] [--no-extras] [-j, --json] [-B, --baked] [-W, --wet] [-C, --cooked] [-R, --raw] [--endpoint endpoint] [-q, --query query] [-O, --override] [-V]  method resource [data] [curlopt ...]"
     if [ "$1" -eq 0 ]
     then
         cat <<EOF
@@ -33,7 +33,10 @@ usage() {
        --no-env             Do not use environment variables
        --no-extras          Do not add extra behavior not explicitly asked for
        -j, --json           Send and receive JSON
-       -C, --cooked         Fully cooked 
+       -B, --baked          Bake data from command line
+       -W, --wet	    Do not bake data from command line
+       -C, --cooked         Cook response contents
+       -R, --raw	    Do not cook response contents
        --endpoint endpoint  Specifies an endpoint (overrides \$EASYENDPOINT)
        -q, --query query    Include the query with the path
        -O, --override       Override POST with the chosen method
@@ -47,6 +50,14 @@ EOF
     exit $1
 }
 
+urlencode() {
+  echo "$*" | sed 's/%/%25/g;s/\[/%5B/g;s/\]/%5D/g;s/|/%7C/g;s/\$/%24/g;s/&/%26/g;s/+/%2B/g;s/,/%2C/g;s/:/%3A/g;s/;/%3B/g;s/=/%3D/g;s/?/%3F/g;s/@/%40/g;s/ /%20/g;s/#/%23/g;s/{/%7B/g;s/}/%7D/g;s/\\/%5C/g;s/\^/%5E/g;s/~/%7E/g;s/`/%60/g'
+}
+
+quotestr() {
+    echo "$@" | sed 's/"/\\\"/g'
+}
+
 quote() {
     if [ "$1" = "--in-quotes" ]
     then 
@@ -58,7 +69,7 @@ quote() {
     qargs=
     for a
     do
-	if echo $a | grep -q "[ 	'\
+	if echo $a | grep -q "[ 	&\"'\
 ]"
 	then
 	    q=$quote`echo $a | sed "s/'/'\"'\"/g"`$quote
@@ -134,6 +145,56 @@ call() {
     if [ -n "$takesdata" ]
     then
 	nodatagiven=
+	if [ -n "$baked" ]
+	then
+	    data=""
+	    if [ -n "$json" ]
+	    then
+		datastart="{"
+		dataend="}"
+		datasep=","
+	    else
+		datastart=
+		dataend=
+		datasep="&"
+	    fi
+	    for arg
+	    do
+		case "$arg" in
+		    [^-]*=*)
+			key=`echo $arg | sed -E 's/^([^:=]+):?=.*/\1/'`
+			val=`echo $arg | sed -E 's/^[^:=]+:?=(.*)/\1/'`
+			literal=`echo $arg | grep -Eq '/^[:=][^:=]'`
+			if [ -z "$data" ]
+			then
+			    data="$datastart"
+			else
+			    data="$data$datasep"
+			fi
+			if [ -n "$json" ]
+			then
+			    data="$data"'"'"`quotestr $key`"'"'"="
+			    if [ -n "$literal" ]
+			    then
+				data="$data`quote $val`"
+			    else
+				data="$data"'"'"`quotestr $val`"'"'
+			    fi
+			else
+			    data="$data`urlencode $key`=`urlencode $val`"
+			fi
+			shift
+			;;
+		    *)
+			break
+			;;
+		esac
+	    done
+	    if [ -n "$data" ]
+	    then
+		data="$data$dataend"
+	    fi
+	else
 	case "$1" in
 	    -)
 		data="@-"
@@ -147,6 +208,7 @@ call() {
 		shift
 		;;
 	esac
+	fi
 
 	if [ -n "$useeditor" ]
 	then
@@ -207,8 +269,17 @@ do
 		    j)
 			json=yes
 			;;
+		    B)
+			baked=yes
+			;;
+		    W)
+			baked=
+			;;
 		    C)
-			cooked=yes
+			cooked=`expr 0$cooked + 1`
+			;;
+		    R)
+			cooked=
 			;;
 		    q)
 			test $# -gt 1 || usage 1
@@ -309,8 +380,17 @@ do
 	--json)
 	    json=yes
 	    ;;
+	--baked)
+	    baked=yes
+	    ;;
+	--wet)
+	    baked=
+	    ;;
 	--cooked)
-	    cooked=yes
+	    cooked=`expr 0$cooked + 1`
+	    ;;
+	--raw)
+	    cooked=
 	    ;;
 	--endpoint)
 	    test $# -gt 1 || usage 1

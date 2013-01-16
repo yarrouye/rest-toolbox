@@ -29,7 +29,7 @@ usage() {
         u=u
         exec >&2
     fi
-    echo $u"sage: $me [--help] [--mime-types file] [-C] [-E] [-h | --no-filename] [-m glob-pattern] [file ...]"
+    echo $u"sage: $me [--help] [--mime-types file] [-g, --guess] [-C] [-E] [-h | --no-filename] [-m glob-pattern] [file ...]"
     if [ "$1" -eq 0 ]
     then
 	if [ -n "$default_MIMETYPES" ]
@@ -40,6 +40,7 @@ usage() {
 
        --help                Show this message
        --mime-types file     Use given file to map MIME types to file extensions (defaults to \$MIMETYPES$ordefmimetypesmsg)
+       -g, --guess           Double guess/check some broad MIME types
        -C                    Do not print charset information
        -E                    Do not print file extensions
        -h, --no-filename     Do not print filename
@@ -57,6 +58,9 @@ do
 	    for l in `echo $1 | sed -e 's/^-//' -e 's/\(.\)/\1 /g'`
 	    do
 	        case "$l" in
+		    g)
+			guess=yes
+			;;
 		    C)
 			nocharset=yes
 			;;
@@ -90,6 +94,9 @@ do
 	    fi
 	    shift
 	    MIMETYPES=$1
+	    ;;
+	--guess)
+	    guess=yes
 	    ;;
 	--no-filename)
 	    nofilename=yes
@@ -133,25 +140,28 @@ do
     fi
 
     fullmimetype=`file -bI $infile`
-    case "$fullmimetype" in
-	text/plain*)
-	    replmimetype=
-	    if head -1 $infile | grep -q '^[ 	]*[{[]'
-	    then
-		replmimetype=application/json
-	    else
-		if head -1 $infile | grep -q '^HTTP/[0-9][0-9]*\.[0-9][0-9]* [0-9][0-9]*'
+    if [ -n "$guess" ]
+    then
+	case "$fullmimetype" in
+	    text/plain*)
+		replmimetype=
+		if head -1 $infile | grep -q '^[ 	]*[{[]'
 		then
-		    replmimetype=text/http
+		    replmimetype=application/json
+		else
+		    if head -1 $infile | grep -q '^HTTP/[0-9][0-9]*\.[0-9][0-9]* [0-9][0-9]*'
+		    then
+			replmimetype=text/x-http
+		    fi
 		fi
-	    fi
-	    if [ -n "$replmimetype" ]
-	    then
-		escreplmimetype=`echo $replmimetype | sed 's,/,\\\\/,g'`
-		fullmimetype=`echo "$fullmimetype" | sed "s,^text/plain,$escreplmimetype,"`
-	    fi
-	    ;;
-    esac
+		if [ -n "$replmimetype" ]
+		then
+		    escreplmimetype=`echo $replmimetype | sed 's,/,\\\\/,g'`
+		    fullmimetype=`echo "$fullmimetype" | sed "s,^text/plain,$escreplmimetype,"`
+		fi
+		;;
+	esac
+    fi
     mimetype=`echo $fullmimetype | sed 's/;.*$//'`
 
     if [ -r "$MIMETYPES" -a -z "$nofileexts" ]

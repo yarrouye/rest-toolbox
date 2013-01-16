@@ -37,13 +37,39 @@ Okay, that might be better if you want to issue a lot of commands for a
 given host. If you want even simpler, you can ask easy(1) to generate some
 functions for you. See Shortcut Trickery below.
 
-*Easy Cookery*
+*Easy Baking and Cooking*
+
+Passing the `-j` or `--json` option to easy(1) causes it to
+automatically insert the proper headers for interaction using JSON as the
+content type.
+
+In addition, if easy(1) is passed the `-B` or `--baked` argument it will
+take a number of command line arguments formatted as assignments and bake
+them into the proper data format to send them.
+
+    $ easy -B POST /persons name=Yves zipcode:=98004 company='Expedia, Inc.'
+
+will bake the data string `name=Yves&zipcode=98008&company=Expedia%2C%20Inc.`
+for submission, while
+
+    $ easy -B POST /persons name=Yves zipcode:=98004 company='Expedia, Inc.'
+
+will bake the following JSON object:
+
+    {
+        "name": "Yves",
+        "zipcode": 98004,
+        "company": "Expedia, Inc."
+    }
+
+The `:=` assignment tells easy(1) to use the value literally rather than
+to quote it as a string.
+
+To prevent baking, one can use `-W` or `--wet`.
 
 While by default easy(1) does very little to change one's typical exchange
 with an HTTP server, it can cook the server's responses if passed the
-`-C` option. Also, if it is passed the `-j` or `--json` option it will
-automatically insert the proper headers for interaction using JSON as the
-content type.
+`-C` option.
 
 Cooking the response has a big impact on what one sees. The response is
 cooked by easy(1) according to the following recipe:
@@ -82,7 +108,8 @@ Update a resource with PUT:
 
     $ easy PUT -j /resources/1234 '{ "key": "something" }'
 
-You get the idea...
+You get the idea... One can request no cooking by using the `-R` or
+`--raw` option.
 
 *Putting, Patching Etc. Through a Picky Gateway or Firewall*
 
