@@ -4,7 +4,16 @@
 # Associate MIME types with commands that pretty(1) uses to prettify
 # input
 #
-# Each block of commands for a given MIME type must be
+# Each block of commands for a given MIME type must start with the MIME type
+# at the beginning of a line and end with an empty line. Each line of the block
+# may contain an attribute=command arg ... declaration following whitespace.
+# The following attributes are recognized:
+#
+#  pretty	command to prettify content
+#  color	command to colorize content
+#
+# All attributes are optional. All text that is not part of a block is ignored.
+#
 
 application/json	pretty=json -q
 			color=pygmentize -l json
