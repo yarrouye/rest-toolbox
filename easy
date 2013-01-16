@@ -100,14 +100,20 @@ callcurl() {
 	then
 	    prettyarg=-C
 	fi
-	grep -v '^Transfer-Encoding:' $hdrfile | pretty $prettyarg 2>/dev/null
-	echo
-	type="`sed -n 's/^Content-Type:[ 	]*\([^;]*\).*$/\1/p' $hdrfile | tr -d '[\012\015]'`"
-	if [ -z "$type" ]
+	if [ -f $hdrfile ]
 	then
-	    type="`mime -qEC $contentfile 2>/dev/null`"
+	    grep -v '^Transfer-Encoding:' $hdrfile | pretty $prettyarg 2>/dev/null
+	    echo
+	    type="`sed -n 's/^Content-Type:[ 	]*\([^;]*\).*$/\1/p' $hdrfile | tr -d '[\012\015]'`"
 	fi
-	pretty $prettyarg $contentfile 2>/dev/null
+	if [ -f "$contentfile" ]
+	then
+	    if [ -z "$type" ]
+	    then
+	        type="`mime -qEC $contentfile 2>/dev/null`"
+	    fi
+	    pretty $prettyarg $contentfile 2>/dev/null
+	fi
 	rm -f $hdrfile $contentfile
     else
         curl "$@"
@@ -258,7 +264,7 @@ call() {
 
     callcurl $mycurlopts $EASYOPTS $opt --data-binary "$data" \
 	-X $method -H "$httpoverride" -H "$json1" -H "$json2" \
-        -H "Host: $host" $EASYCURLOPTS "$@" $urlbase$resource
+        $EASYCURLOPTS "$@" $urlbase$resource
 }
 
 #
