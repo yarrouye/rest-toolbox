@@ -12,8 +12,7 @@ services. It is great tool to play with REST services. Examples in this
 document put the emphasis on those HTTP methods that are used with such
 services.
 
-Simple Invokation
-~~~~~~~~~~~~~~~~~
+*Simple Invokation*
 
 One can make a call to a service using a simple invokation such as:
 
@@ -38,8 +37,7 @@ Okay, that might be better if you want to issue a lot of commands for a
 given host. If you want even simpler, you can ask easy(1) to generate some
 functions for you. See Shortcut Trickery below.
 
-Easy Cookery
-~~~~~~~~~~~~
+*Easy Cookery*
 
 While by default easy(1) does very little to change one's typical exchange
 with an HTTP server, it can cook the server's responses if passed the
@@ -57,8 +55,7 @@ cooked by easy(1) according to the following recipe:
 Cooked mode makes for a very pretty interaction. For quick testing of REST
 services, `-jC` is a must.
 
-Posting, Putting, Patching: When Data Are Needed
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*Posting, Putting, Patching: When Data Are Needed*
 
 Make a POST without sending data, which is often used to create a new
 resource in REST services:
@@ -87,15 +84,13 @@ Update a resource with PUT:
 
 You get the idea...
 
-Putting, Patching Etc. Through a Picky Gateway or Firewall
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*Putting, Patching Etc. Through a Picky Gateway or Firewall*
 
 Simply ask easy(1) to override POST:
 
     $ easy -O PUT /resources/1234 'key=something'
 
-Shortcut Trickery
-~~~~~~~~~~~~~~~~~
+*Shortcut Trickery*
 
 As indicated above, easy(1) can generate functions for you to allow for
 very simple invokations:
