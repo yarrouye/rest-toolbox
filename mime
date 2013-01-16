@@ -126,13 +126,32 @@ do
     infile=${infile--}
     if [ "$infile" = - ]
     then
-	tmpfile=$TMPDIR/$me.$$
+	tmpfile=`mktemp $TMPDIR/$me.XXXXXX`
 	trap "rm -f $tmpfile 2>/dev/null" 0
 	cat >$tmpfile
 	infile=$tmpfile
     fi
 
     fullmimetype=`file -bI $infile`
+    case "$fullmimetype" in
+	text/plain*)
+	    replmimetype=
+	    if head -1 $infile | grep -q '^[ 	]*[{[]'
+	    then
+		replmimetype=application/json
+	    else
+		if head -1 $infile | grep -q '^HTTP/[0-9][0-9]*\.[0-9][0-9]* [0-9][0-9]*'
+		then
+		    replmimetype=text/http
+		fi
+	    fi
+	    if [ -n "$replmimetype" ]
+	    then
+		escreplmimetype=`echo $replmimetype | sed 's,/,\\\\/,g'`
+		fullmimetype=`echo "$fullmimetype" | sed "s,^text/plain,$escreplmimetype,"`
+	    fi
+	    ;;
+    esac
     mimetype=`echo $fullmimetype | sed 's/;.*$//'`
 
     if [ -r "$MIMETYPES" -a -z "$nofileexts" ]
@@ -151,6 +170,13 @@ do
 	esac
     fi
 
+    if [ -n "$nofileexts" ]
+    then
+	fileexts=
+    else
+	fileexts="	$fileexts"
+    fi
+
     if [ -z "$pattern" ]
     then
 	if [ $# -gt 1 -a -z "$nofilename" ]
@@ -165,7 +191,7 @@ do
 	else
 	    printmimetype=$mimetype
 	fi
-	echo "$header$printmimetype	$fileexts"
+	echo "$header$printmimetype$fileexts"
     else
 	case "$mimetype" in
 	    $pattern)

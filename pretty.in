@@ -1,0 +1,47 @@
+#! /bin/sh
+
+# Prettifies and colorizes content according to its MIME type
+#
+# Yves Arrouye
+
+: ${TMPDIR:=/tmp}
+me=`basename $0`
+
+: ${PRETTYCOMMANDS:=@datarootdir@/pretty.commands}
+
+if [ $# -eq 0 ]
+then
+    extras=-
+fi
+
+prettify() {
+    input="$1"
+    if [ "$input" = "-" ]
+    then
+	input=$TMPDIR/$me.$$
+	cat >$input
+	trap "rm -f $input" 0 1 2 3 4 5 6 7 8 15
+    fi
+    type=`mime -EC $input`
+    esctype=`echo $type | sed 's,/,\\\\/,g'`
+    entries=`sed 's/$/ #END/' $PRETTYCOMMANDS | sed -n "/^$esctype[ 	]/,/^[ 	]/p"`
+    pretty=`echo $entries | sed -n -e 's/^.*[         ][      ]*pretty=\([^#]*\) #END.*/\1/p'`
+    color=`echo $entries | sed -n -e 's/^.*[         ][      ]*color=\([^#]*\)[ 	]* #END.*/\1/p'`
+
+    : ${pretty:=cat}
+    : ${color:=cat}
+
+    sh -c "cat $input | $pretty | $color"
+
+    if [ "$1" != "$input" ]
+    then 
+	rm -f $input
+    fi
+}
+
+for f in "$@" $extras
+do
+    prettify $f
+done
+
+

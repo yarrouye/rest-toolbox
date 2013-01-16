@@ -1,0 +1,190 @@
+REST Toolbox
+============
+
+A small collection of commands making life easier when interacting with REST services.
+
+Easy Interaction With HTTP Servers and Services
+-----------------------------------------------
+
+curl(1) is not very easy to use and its command line, while very powerful,
+is quite verbose. easy(1) makes it trivial to invoke HTTP servers and
+services. It is great tool to play with REST services. Examples in this
+document put the emphasis on those HTTP methods that are used with such
+services.
+
+Simple Invokation
+~~~~~~~~~~~~~~~~~
+
+One can make a call to a service using a simple invokation such as:
+
+    $ easy POST http://127.0.0.1/service/v1/resources
+
+This is equivalent to:
+
+    $ easy --endpoint http://127.0.0.1/service/v1 POST /resources
+
+While that is not that much great news in itself, easy(1) can also use the
+contents of `$EASYENDPOINT` as the endpoint. So one could issue a few
+commands to the same endpoint by doing something like:
+
+    $ export EASYENDPOINT=http://127.0.0.1/service/v1
+    $ easy POST /resources
+    ...
+    $ easy GET /resources/23
+    ...
+    $
+
+Okay, that might be better if you want to issue a lot of commands for a
+given host. If you want even simpler, you can ask easy(1) to generate some
+functions for you. See Shortcut Trickery below.
+
+Easy Cookery
+~~~~~~~~~~~~
+
+While by default easy(1) does very little to change one's typical exchange
+with an HTTP server, it can cook the server's responses if passed the
+`-C` option. Also, if it is passed the `-j` or `--json` option it will
+automatically insert the proper headers for interaction using JSON as the
+content type.
+
+Cooking the response has a big impact on what one sees. The response is
+cooked by easy(1) according to the following recipe:
+
+- Prettifies the HTTP response headers
+- Produce a blank line
+- Prettifies the response's contents
+
+Cooked mode makes for a very pretty interaction. For quick testing of REST
+services, `-jC` is a must.
+
+Posting, Putting, Patching: When Data Are Needed
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Make a POST without sending data, which is often used to create a new
+resource in REST services:
+
+    $ easy POST /resources
+
+Make a POST and specify the data on the command line:
+
+    $ easy -j POST /resources '{ "key": "value" }'
+
+Make POST and create the data using your favorite editor. The editor will
+be taken from `$VISUAL`, `$EDITOR`, vim(1) and vi(1) in this order. If
+easy(1) cannot find a program apecified by an environment variable, it does
+ignore it.
+
+    $ easy -jV POST /resources
+
+Pipe data between services and edit them before they are posted (the `-VV`
+flag tells easy(1) to edit the data that were provided):
+
+    $ easy --endpoint http://localhost/ GET /things/1 | easy -jVV POST /resources
+
+Update a resource with PUT:
+
+    $ easy PUT -j /resources/1234 '{ "key": "something" }'
+
+You get the idea...
+
+Shortcut Trickery
+~~~~~~~~~~~~~~~~~
+
+As indicated above, easy(1) can generate functions for you to allow for
+very simple invokations:
+
+    $ easy --print all
+    export EASYENDPOINT=http://127.0.0.1/service/v1;
+    DELETE () {
+        easy DELETE "$@"
+    };
+    HEAD () {
+        easy HEAD "$@"
+    };
+    GET () {
+        easy GET "$@"
+    };
+    OPTIONS () {
+        easy OPTIONS "$@"
+    };
+    POST () {
+        easy POST "$@"
+    };
+    TRACE () {
+        easy TRACE "$@"
+    };
+    $
+
+In order to have these functions available to you, simply evaluate the
+output of `easy --print`:
+
+    $ eval `easy --print all`
+    $ env | grep EASYENDPOINT
+    EASYENDPOINT=http://127.0.0.1/service/v1
+    $ functions
+    DELETE () {
+        easy DELETE "$@"
+    }
+    HEAD () {
+        easy HEAD "$@"
+    }
+    GET () {
+        easy GET "$@"
+    }
+    OPTIONS () {
+        easy OPTIONS "$@"
+    }
+    POST () {
+        easy POST "$@"
+    }
+    TRACE () {
+        easy TRACE "$@"
+    }
+    $
+
+Now you can just call `DELETE`, `GET` etc. If you want to use a different
+endpoint, simply reset the value of `$EASYENDPOINT` or temporarily override
+it by passing an endpoint with the `--endpoint` option.
+
+If you use csh(1) or tcsh(1), you can get definitions that your shell will
+understand too. Note that easy(1) relies on the value of `$SHELL` to determine
+what to do, so if you call a new shell from an existing shell you may have
+to set that variable properly yourself.
+
+    csh% easy --print all
+    setenv EASYENDPOINT http://127.0.0.1/service/v1;
+    alias DELETE 'easy DELETE \!* ';
+    alias HEAD 'easy HEAD \!* ';
+    alias GET 'easy GET \!* ';
+    alias OPTIONS 'easy OPTIONS \!* ';
+    alias POST 'easy POST \!* ';
+    alias TRACE 'easy TRACE \!* ';
+    csh%
+
+You can add arguments too, and they will be remembered.
+You can also specify a method name and only that method will have
+a function or an alias defined for it. This allows for example to have
+different arguments for different methods:
+
+    $ easy --print func GET -H 'Client-Id: 128efe71k19'
+    GET () {
+        easy GET "$@" -H 'Client-Id: 128efe71k19'
+    };
+    $ easy --print func POST -H 'Client-Id: 128efe71k19' -H 'Content-Type: application/json'
+    POST () {
+        easy POST "$@" -H 'Client-Id: 128efe71k19' -H 'Content-Type: application/json'
+    };
+    $ 
+
+
+Open Standard Input in the Right Application
+--------------------------------------------
+
+openstdin(1) is a simple script that allows one to open standard input in an
+appropriate application as determined by open(1).
+
+It can automatically determine the proper file extension to use
+for open to pick an application. In order to do so it relies on file(1)
+and a mime.types file (either Apache's or CUPS's mime.types(5) can
+be used).
+

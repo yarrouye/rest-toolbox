@@ -1,0 +1,322 @@
+#! /bin/sh
+
+# rest(1): interact with REST services
+#
+# Yves Arrouye
+
+: ${TMPDIR:=/tmp}
+me=`basename $0`
+
+: ${XDG_CONFIG_HOME:=$HOME/.config}
+: ${XDG_CONFIG_DIRS:=/etc/xdg}
+: ${XDG_DATA_HOME:=$HOME/.local/share}
+: ${XDG_DATA_DIRS:=/usr/local/share/:/usr/share/}
+
+rest_methods="DELETE HEAD GET OPTIONS POST TRACE"
+
+usage() {
+    if [ "$1" -eq 0 ]
+    then
+        u=U
+    else
+        u=u
+        exec >&2
+    fi
+    echo $u"sage: $me [--help] [--print [-s] [-p prefix] [[no]env,[no]func,all]] [--cmd file] [--endpoint endpoint] HEAD|OPTIONS|GET|DELETE|PATCH|PUT|TRACE resource [curlopt ...]"
+    if [ "$1" -eq 0 ]
+    then
+        cat <<EOF
+
+       --help               Show this message
+       --print [opts] what  Print commands to set env or define REST functions
+       --cmd file           Print the curl(1) command to file
+       --endpoint endpoint  Specifies an endpoint (overrides \$RESTENDPOINT)
+       resource             Resource to operate on
+       curlopt ...	    Options for curl(1) in addition to \$CURLRESTOPTS
+EOF
+    fi
+
+    exit $1
+}
+
+quote() {
+    if [ "$1" = "--in-quotes" ]
+    then 
+        quote="'"'"'"'"
+        shift
+    else
+	quote="'"
+    fi
+    qargs=
+    for a
+    do
+	if echo $a | grep -q "[ 	'\
+]"
+	then
+	    q=$quote`echo $a | sed "s/'/'\"'\"/g"`$quote
+	    qargs="$qargs $q"
+	else
+	    qargs="$qargs $a"
+	fi
+    done
+    echo "$qargs" | sed 's/^ //'
+}
+
+callcurl() {
+    curl "$@"
+    res=$?
+    if [ -n "$printfile" ]
+    then
+	if [ "$printfile" = "-" ]
+	then
+	    exec >&2
+	else
+	    exec >$printfile || exit "$me: could not write to $printfile"
+	fi
+	quote curl "$@"
+    fi
+    exit $res
+}
+
+call() {
+    resource=$1
+    shift
+
+    proto=`echo $RESTENDPOINT | sed -e 's,:.*,,'`
+    host=`echo $RESTENDPOINT | sed -e 's,^[a-z]*://\(.*\),\1,' -e 's,/.*,,'`
+    hostdir=`echo $host | sed -e 's,:, ,g'`
+
+    urlbase=$proto://$host
+
+    callcurl -LsS $CURLRESTOPTS -H "Host: $host" "$@" $urlbase$resource
+}
+
+DELETE() {
+    call "$@" -X DELETE
+}
+
+HEAD() {
+    call "$@" -I
+}
+
+GET() {
+    call "$@"
+}
+
+OPTIONS() {
+    call "$@" -X OPTIONS
+}
+
+POST() {
+    call "$@" -X POST -d @-
+}
+
+PUT() {
+    call "$@" -X PUT
+}
+
+TRACE() {
+    call "$@" -X TRACE
+}
+
+#
+
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	-[^-]*)
+	    for l in `echo $1 | sed -e 's/^-//' -e 's/\(.\)/\1 /g'`
+	    do
+		case "$l" in
+		    *)
+			break
+			;;
+		esac
+	    done
+	    break     # For now, because we dont have letter options
+	    ;;
+	--help)
+	    usage 0
+	    ;;
+	--cmd)
+	    test $# -gt 1 || usage 1
+	    shift
+	    printfile=$1
+	    ;;
+	--print)
+	    test $# -gt 1 || usage 1
+	    shift
+	    while [ $# -gt 1 ]
+	    do
+		case "$1" in
+		    -s)
+			printselfcontained=yes
+			;;
+		    -p)
+			test $# -gt 1 || usage 1
+			shift
+			printprefix="$1"
+			;;
+		    *)
+			break
+			;;
+		esac
+		shift
+	    done
+	    printshell=$1
+	    for f in `echo $printshell | sed 's/,/ /g'`
+	    do
+		case "$f" in
+		    env)
+			;;
+		    noenv)
+			noprintenv=yes
+			;;
+		    func)
+			;;
+		    nofunc)
+			noprintshellcmd=yes
+			;;
+		    config)
+			;;
+		    noconfig)
+			noprintconfig=yes
+			;;
+		    all)
+			printall=yes
+			;;
+		    *)
+			>&2 echo $me: unknown --print argument: $f && exit 5
+			;;
+		esac
+	    done
+	    ;;
+	--endpoint)
+	    test $# -gt 1 || usage 1
+	    shift
+	    RESTENDPOINT=$1
+	    ;;
+	-*)
+	    break
+	    ;;
+	*)
+	    if [ -z "$method" ]
+	    then
+		method=$1
+	    else
+		break
+	    fi
+	    ;;
+    esac
+    shift
+done
+
+
+if [ -n "$printshell" ]
+then
+    # Process the --print arguments in the order we have seen then
+
+    if [ -n "$printselfcontained" ]
+    then
+	allargs=${printall:+func}
+    else
+	allargs=${printall:+env,func,config}
+    fi
+    
+    for f in `echo $printshell,$allargs | sed 's/,/ /g'`
+    do
+	case "$f" in
+	    env)
+		if [ -z "$noprintenv" ]
+		then
+		    case "${SHELL:-/bin/sh}" in
+			*/csh*|*/tcsh*)
+			    export="setenv"
+			    exporteq=" "
+			    ;;
+			*)
+			    export="export"
+			    exporteq="="
+			    ;;
+		    esac
+		    test -n "$RESTENDPOINT" && echo "$export RESTENDPOINT$exporteq'$RESTENDPOINT'"
+		fi
+		;;
+	    func)
+		if [ -z "$noprintshellcmd" ]
+		then
+		    print_methods=${method:-$rest_methods}
+		    case "${SHELL:-/bin/sh}" in
+			*/csh*|*/tcsh*)
+			    csh=yes
+			    quoteforsh=--in-quotes
+			    ;;
+		    esac
+		    if [ -n "$printselfcontained" ]
+		    then
+			test -n "$RESTENDPOINT" && endpointarg="--endpoint `quote $quoteforsh $RESTENDPOINT`"
+		    fi
+		    if [ -n "$printconfig" ]
+		    then
+			:
+			shift $#
+		    else
+    			args=" "`quote $quoteforsh "$@"`
+			restyargs="$endpointarg "
+		    fi
+		    if [ -n "$csh" ]
+		    then
+			if [ -n "$args" ]
+			then
+			    aliasargs=' \!*'
+			fi
+			for method in $print_methods
+			do
+			    cat <<EOF
+alias $printprefix$method '$me $restyargs$method$aliasargs$args'
+EOF
+			done
+		    else
+			for method in $print_methods
+			do
+			    cat <<EOF
+$printprefix$method() {
+    $me $restyargs$method "\$@"$args;
+};
+EOF
+			done
+		    fi
+		fi
+		;;
+	esac
+    done
+
+    exit 0
+fi
+
+#
+
+if [ -z "$method" ]
+then
+    test $# -ge 1 || usage 1
+    method=$1
+    shift
+fi
+
+if echo " $rest_methods " | fgrep -q " $method "
+then
+    if [ -n "$assumecmdname" ]
+    then
+	me=$method
+    fi
+    
+    if [ -z "$RESTENDPOINT" ]
+    then
+	>&2 echo $me: unable to determine which endpoint to call
+	exit 2
+    fi
+    
+    $method "$@"
+else
+    >&2 echo $me: unknown method: $method
+fi

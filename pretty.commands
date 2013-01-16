@@ -1,0 +1,16 @@
+#
+# pretty.commands(5)
+#
+# Associate MIME types with commands that pretty(1) uses to prettify
+# input
+#
+# Each block of commands for a given MIME type must be
+
+application/json	pretty=json -q
+			color=pygmentize -l json
+
+text/html		pretty=tidy -q -asxhtml
+			color=pygmentize -l html
+
+text/http		color=pygmentize -l http
+

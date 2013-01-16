@@ -1,0 +1,200 @@
+.\"Modified from man(1) of FreeBSD, the NetBSD mdoc.template, and mdoc.samples.
+.\"See Also:
+.\"man mdoc.samples for a complete listing of options
+.\"man mdoc for the short list of editing options
+.\"/usr/share/misc/mdoc.template
+.Dd January 12, 2013               \" DATE 
+.Dt EASY 1      \" Program name and manual section number 
+.\" .An Yves Arrouye
+.\" Copyright (C) 2013, Yves Arrouye. All rights reserved.
+.Os Darwin
+.Sh NAME                 \" Section Header - required - don't modify 
+.Nm easy
+.\" The following lines are read in generating the apropos(man -k) database. Use only key
+.\" words here as the database is built based on the words here and in the .ND line. 
+.Nd easy interaction with HTTP servers and services
+.Sh SYNOPSIS             \" Section Header - required - don't modify
+.Nm
+.Op Fl Fl help                  \" [--help]
+.Op Fl Fl print [ [ Fl s | Fl p Ar prefix ] Ar options
+.Op Fl Fl cmd Ar file
+.Op Fl Fl no-env
+.Op Fl Fl no-extras
+.Op Fl j , Fl Fl json
+.Op Fl C , Fl Fl cooked
+.Op Fl Fl endpoint Ar endpoint
+.Op Fl q , Fl Fl query [ Ar query ]
+.Op Fl O , Fl Fl override
+.Op Fl V\fR[\fPV\fR]\fP
+.Ar method
+.Ar resource
+.Op Ar data
+.Op Ar curlopt ...
+.Sh DESCRIPTION          \" Section Header - required - don't modify
+.Nm
+makes interacting with HTTP servers easy.
+It allows one to use the name of an HTTP method followed by a resource path
+(relative to a given
+.Ar endpoint )
+or URI in order to interact with it.
+.Pp
+.Nm
+constructs and executes a command line for
+.Xr curl 1
+in order to actually communicate with the HTTP server. It exits with the
+status code from
+.Xr curl 1 .
+.Pp
+The following options are available:
+.Bl -tag -width -indent  \" Differs from above in tag removed 
+.It Fl Fl help               \"-a flag as a list item
+Print a help usage message documenting each option.
+.It Fl Fl print [ [ Fl s | Fl p Ar prefix ] Ar options ]
+Print shell commands that can be evaluated to set environment variables,
+define shortcut functions or aliased depending on the shell used, or both.
+The following arguments are valid:
+.Bl -tag -width ".Fl p Ar prefix" -indent
+.It Fl s
+Define self-sustaining functions or aliases, i.e. include options for the
+.Ar endpoint
+in the definitions. This makes the function or alias unaffected by a change
+in the value of the
+.Ev EASYENDPOINT
+environment variable.
+.It Fl p Ar prefix
+Prefix function and alias names with
+.Ar prefix .
+.El
+.Pp
+The
+.Ar options
+argument determines what is printed. Multiple printing options
+can be separated by commas. The following printing options
+are available:
+.Bl -tag -width ".Cm func \fR|\fP nofunc" -indent
+.It Cm func \fR|\fP nofunc
+Print function definitions or aliases. If
+.Cm nofunc
+is specified then do not print them even if
+.Cm all
+is specified.
+.It Cm env \fR|\fP noenv
+Print commands to set environment variables. If
+.Cm noenv
+is specified then do not print them even if
+.Cm all
+is specified.
+.It Cm all
+Print everything. If the
+.Fl s
+option is used,
+.Cm env
+is not included except if it is being explicitly listed.
+.El
+.It Fl Fl cmd Ar file
+Print the exact command line that was used to invoke
+.Xr curl 1
+after it has been called.
+.It Fl Fl no-env
+Ignore environment variables.
+.It Fl Fl no-extras
+Do not add hidden arguments to the
+.Xr curl 1
+command line. By default,
+.Nm
+uses such arguments to suppress the progress meter, follow redirections, etc.
+.It Fl j , Fl Fl json
+Indicate that data sent is JSON and automatically includes an Accept header
+for
+.Cm application/json .
+.It Fl C , Fl Fl cooked
+Cook the response, i.e. format all response headers and the response contents
+using
+.Xr pretty 1 .
+Cooked responses are very easy for humans to process.
+.It Fl Fl endpoint Ar endpoint
+Set the endpoint of the server or service to be called.
+.It Fl q , Fl Fl query [ Ar query ]
+Pass the given
+.Ar query
+on the resource path by appending a question mark and the
+.Ar query 
+to it.
+.It Fl O , Fl Fl override
+Override the
+.B POST
+method and pass the requested
+.Ar method
+in an X-HTTP-Override
+header.
+.It Fl V\fR[\fPV\fR]\fP
+Create data using an editor. The editor is determined by looking for
+an existing editor in the
+.Ev VISUAL 
+and
+.Ev EDITOR
+environment variables. If there is no such editor, then
+.Nm
+will look for
+.Xref vim 1
+and then
+.Xref vi 1 .
+If
+.Fl V
+is passed a second time then
+.Ar data
+will be edited in the editor too.
+.It Ar method
+Set the HTTP method to call.
+.It Ar resource
+Set the resource to operate on. If
+.Ar resource
+is a URI then use it as is. Otherwise its value is
+appended to the service
+.Ar endpoint
+in order to make up the full resource URI.
+.It Ar data
+Data to be posted to the server or service.
+.It Ar curlopt ...
+Any
+.Ar curlopt
+is appended to the
+.Xr curl 1
+command line generate by
+.Nm .
+.El
+.Sh ENVIRONMENT
+.Bl -tag -width "EASYCURLOPTS" -indent
+.It Ev TMPDIR
+Directory into which to write temporary files. Defaults to
+.Pa /tmp .
+.It Ev EASYENDPOINT
+Endpoint to use if an
+.Ar endpoint
+is not specified on the command line.
+.It Ev EASYOPTS
+Options to always use.
+.It Ev EASYCURLOPTS
+Options to pass to
+.Xr curl 1 .
+These options are passed before the ones present on the command line if any.
+.\" .It Ev ENV_VAR_1
+.\" Description of ENV_VAR_1
+.\" .It Ev ENV_VAR_2
+.\" Description of ENV_VAR_2
+.\" .El                      
+.\" .Sh DIAGNOSTICS       \" May not be needed
+.\" .Bl -diag
+.\" .It Diagnostic Tag
+.\" Diagnostic informtion here.
+.\" .It Diagnostic Tag
+.\" Diagnostic informtion here.
+.\" .El
+.Sh SEE ALSO 
+.\" List links in ascending order by section, alphabetically within a section.
+.\" Please do not reference files that do not exist without filing a bug report
+.Xr curl 1 ,
+.Xr mime 1 ,
+.Xr pretty 1
+.\" .Sh BUGS              \" Document known, unremedied bugs 
+.\" .Sh HISTORY           \" Document history if command behaves in a unique manner

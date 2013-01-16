@@ -58,7 +58,7 @@ determines the standard input contents' MIME type using
 The following options are available:
 .Bl -tag -width -indent  \" Differs from above in tag removed 
 .It Fl Fl help               \"-a flag as a list item
-Prints a help usage message documenting each option.
+Print a help usage message documenting each option.
 .It Fl Fl mime-types Ar file               \"-a flag as a list item
 Use
 .Ar file
@@ -100,17 +100,17 @@ and any subsequent argument to the command used to open the file.
 .Bl -tag -width "MIMETYPES" -indent
 .It Ev TMPDIR
 Directory into which to write temporary files. Defaults to
-.Cm /tmp .
+.Pa /tmp .
 .It Ev MIMETYPES
 Path to the file containing MIME types to file extension mappings. Defaults
 to
-.Cm /etc/apache2/mime.types
+.Pa /etc/apache2/mime.types
 if it exists, or to
-.Cm /usr/share/cups/mime/mime.types
+.Pa /usr/share/cups/mime/mime.types
 if it exists.
 .It Ev OPENCMD
 Command to use for opening files. Defaults to
-.Cm open .
+.Xr open 1 .
 .\" .It Ev ENV_VAR_1
 .\" Description of ENV_VAR_1
 .\" .It Ev ENV_VAR_2

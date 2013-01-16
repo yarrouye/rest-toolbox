@@ -4,6 +4,7 @@ prefix = /usr/local
 exec_prefix = ${prefix}
 bindir = ${exec_prefix}/bin
 datarootdir = ${prefix}/share
+datadir = $(datarootdir)
 mandir = ${datarootdir}/man
 
 INSTALL = /usr/bin/install -c
@@ -12,6 +13,7 @@ INSTALL_DATA = $(INSTALL) -m 644
 INSTALL_SCRIPT = $(INSTALL)
 
 TAR = /usr/bin/tar
+SED = /usr/bin/sed
 
 PACKAGE = openstdin
 VERSION = 0.1
@@ -21,8 +23,9 @@ top_distdir = $(distdir)
 
 #
 
-dist_bin_SCRIPTS = openstdin mime
-dist_MAN1_MANS = openstdin.1
+dist_bin_SCRIPTS = openstdin mime pretty easy
+dist_DATA = pretty.commands
+dist_MAN1_MANS = openstdin.1 easy.1
 
 FILES = $(dist_bin_SCRIPTS) $(dist_MAN1_MANS)
 DISTFILES = Makefile $(FILES) $(EXTRA_DIST)
@@ -31,12 +34,18 @@ DISTFILES = Makefile $(FILES) $(EXTRA_DIST)
 
 all: $(FILES)
 
+pretty: pretty.in
+	$(SED) -e 's,@datarootdir@,$(datarootdir),g' $< >$@
+
 install: all
 	for f in $(dist_bin_SCRIPTS); do \
 	    $(INSTALL_SCRIPT) $$f $(DESTDIR)$(bindir) || exit 1; \
         done
 	for f in $(dist_MAN1_MANS); do \
 	    $(INSTALL_DATA) $$f $(DESTDIR)$(mandir)/man1 || exit 1; \
+	done
+	for f in $(dist_DATA); do \
+	    $(INSTALL_DATA) $$f $(DESTDIR)$(datadir) || exit 1; \
 	done
 
 install-strip: install
@@ -61,7 +70,10 @@ dist dist-all: dist-gzip
 .PHONY: check
 check:
 
-.PHONY: clean maintainer-clean
+clean:
+	$(RM) pretty
+
+.PHONY: maintainer-clean
 clean maintainer-clean:
 
 distclean: clean
