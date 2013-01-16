@@ -271,6 +271,8 @@ call() {
 
 while [ $# -ne 0 ]
 do
+    donotquotearg=
+    firstquotearg=
     case "$1" in
 	-[^-]*)
 	    for l in `echo $1 | sed -e 's/^-//' -e 's/\(.\)/\1 /g'`
@@ -293,6 +295,7 @@ do
 			;;
 		    q)
 			test $# -gt 1 || usage 1
+			firstquotearg="$1"
 			shift
 			query="?$1"
 			;;
@@ -325,12 +328,14 @@ do
 	    ;;
 	--cmd)
 	    test $# -gt 1 || usage 1
+	    firstquotearg="$1"
 	    shift
 	    printfile=$1
 	    ;;
 	--print)
 	    test $# -gt 1 || usage 1
 	    shift
+	    donotquotearg=yes
 	    while [ $# -gt 1 ]
 	    do
 		case "$1" in
@@ -404,6 +409,7 @@ do
 	    ;;
 	--endpoint)
 	    test $# -gt 1 || usage 1
+	    donotquotearg=yes
 	    shift
 	    EASYENDPOINT=$1
 	    ;;
@@ -412,6 +418,7 @@ do
 	    ;;
 	--query)
 	    test $# -gt 1 || usage 1
+	    firstquotearg="$1"
 	    shift
 	    query="?$1"
 	    ;;
@@ -422,11 +429,26 @@ do
 	    if [ -z "$method" ]
 	    then
 		method=$1
+		if [ -n "$printshellcmd" ]
+		then
+		    shift
+		    break
+		fi
 	    else
 		break
 	    fi
 	    ;;
     esac
+    if [ -z "$donotquotearg" ]
+    then
+	if [ -n "$firstquotearg" ]
+	then
+            quotedarg=`quote "$firstquotearg"`
+            quotedargs="$quotedargs $quotedarg"
+	fi
+        quotedarg=`quote "$1"`
+        quotedargs="$quotedargs $quotedarg"
+    fi
     shift
 done
 
@@ -482,8 +504,8 @@ then
 		    esac
 		    if [ -n "$printselfcontained" ]
 		    then
-			test -n "$EASYENDPOINT" && endpointarg="--endpoint `quote $quoteforsh $EASYENDPOINT`"
-			test -n "$EASYCURLOPTS" && easycurloptsarg=`quote $quoteforsh $EASYCURLOPTS`
+			test -n "$EASYENDPOINT" && endpointarg=" --endpoint `quote $quoteforsh $EASYENDPOINT`"
+			test -n "$EASYCURLOPTS" && easycurloptsarg=" `quote $quoteforsh $EASYCURLOPTS`"
 		    fi
 		    if [ -n "$printconfig" ]
 		    then
@@ -495,10 +517,14 @@ then
 			then
 			    if [ -n "$easycurloptsarg" ]
 			    then
-				easyargs="$easycurloptsarg "
+				easyargs="$easycurloptsarg"
 			    fi
-		     	    easyargs="--no-env $easyargs$endpointarg "
+		     	    easyargs=" --no-env$easyargs$endpointarg"
 			fi
+		    fi
+		    if [ -n "$quotedargs" ]
+		    then
+			quotedargs="$quotedargs "
 		    fi
 		    if [ -n "$csh" ]
 		    then
@@ -509,7 +535,7 @@ then
 			for method in $print_methods
 			do
 			    cat <<EOF
-alias $printprefix$method '$me $easyargs$method$aliasargs$args';
+alias $printprefix$method '$me$easyargs$quotedargs$method$aliasargs$args';
 EOF
 			done
 		    else
@@ -517,7 +543,7 @@ EOF
 			do
 			    cat <<EOF
 $printprefix$method () {
-    $me $easyargs$method "\$@"$args
+    $me$easyargs$quotedargs$method "\$@"$args
 };
 EOF
 			done
