@@ -20,9 +20,13 @@ Simple Invokation
 
 One can make a call to a service using a simple invokation such as:
 
+.. code-block:: bash
+
     $ easy POST http://127.0.0.1/service/v1/resources
 
 This is equivalent to:
+
+.. code-block:: bash
 
     $ easy --endpoint http://127.0.0.1/service/v1 POST /resources
 
