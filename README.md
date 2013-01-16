@@ -52,9 +52,9 @@ them into the proper data format to send them.
 will bake the data string `name=Yves&zipcode=98008&company=Expedia%2C%20Inc.`
 for submission, while
 
-    $ easy -B POST /persons name=Yves zipcode:=98004 company='Expedia, Inc.'
+    $ easy -jB POST /persons name=Yves zipcode:=98004 company='Expedia, Inc.'
 
-will bake the following JSON object:
+will bake the following JSON object (prettifying notwithstanding):
 
     {
         "name": "Yves",
