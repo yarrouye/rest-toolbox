@@ -1,8 +1,10 @@
+============
 REST Toolbox
 ============
 
 A small collection of commands making life easier when interacting with REST services.
 
+-----------------------------------------------
 Easy Interaction With HTTP Servers and Services
 -----------------------------------------------
 
@@ -12,6 +14,7 @@ services. It is great tool to play with REST services. Examples in this
 document put the emphasis on those HTTP methods that are used with such
 services.
 
+~~~~~~~~~~~~~~~~~
 Simple Invokation
 ~~~~~~~~~~~~~~~~~
 
@@ -24,7 +27,7 @@ This is equivalent to:
     $ easy --endpoint http://127.0.0.1/service/v1 POST /resources
 
 While that is not that much great news in itself, easy(1) can also use the
-contents of `$EASYENDPOINT` as the endpoint. So one could issue a few
+contents of ``$EASYENDPOINT`` as the endpoint. So one could issue a few
 commands to the same endpoint by doing something like:
 
     $ export EASYENDPOINT=http://127.0.0.1/service/v1
@@ -38,12 +41,13 @@ Okay, that might be better if you want to issue a lot of commands for a
 given host. If you want even simpler, you can ask easy(1) to generate some
 functions for you. See Shortcut Trickery below.
 
+~~~~~~~~~~~~
 Easy Cookery
 ~~~~~~~~~~~~
 
 While by default easy(1) does very little to change one's typical exchange
 with an HTTP server, it can cook the server's responses if passed the
-`-C` option. Also, if it is passed the `-j` or `--json` option it will
+``-C`` option. Also, if it is passed the ``-j`` or ``--json`` option it will
 automatically insert the proper headers for interaction using JSON as the
 content type.
 
@@ -55,8 +59,9 @@ cooked by easy(1) according to the following recipe:
 - Prettifies the response's contents
 
 Cooked mode makes for a very pretty interaction. For quick testing of REST
-services, `-jC` is a must.
+services, ``-jC`` is a must.
 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Posting, Putting, Patching: When Data Are Needed
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -70,13 +75,13 @@ Make a POST and specify the data on the command line:
     $ easy -j POST /resources '{ "key": "value" }'
 
 Make POST and create the data using your favorite editor. The editor will
-be taken from `$VISUAL`, `$EDITOR`, vim(1) and vi(1) in this order. If
+be taken from ``$VISUAL``, ``$EDITOR``, vim(1) and vi(1) in this order. If
 easy(1) cannot find a program apecified by an environment variable, it does
 ignore it.
 
     $ easy -jV POST /resources
 
-Pipe data between services and edit them before they are posted (the `-VV`
+Pipe data between services and edit them before they are posted (the ``-VV``
 flag tells easy(1) to edit the data that were provided):
 
     $ easy --endpoint http://localhost/ GET /things/1 | easy -jVV POST /resources
@@ -87,6 +92,15 @@ Update a resource with PUT:
 
 You get the idea...
 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Putting, Patching Etc. Through a Picky Gateway or Firewall
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Simply ask easy(1) to override POST:
+
+    $ easy -O PUT /resources/1234 'key=something'
+
+~~~~~~~~~~~~~~~~~
 Shortcut Trickery
 ~~~~~~~~~~~~~~~~~
 
@@ -116,9 +130,9 @@ very simple invokations:
     $
 
 In order to have these functions available to you, simply evaluate the
-output of `easy --print`:
+output of ``easy --print``:
 
-    $ eval `easy --print all`
+    $ eval ``easy --print all``
     $ env | grep EASYENDPOINT
     EASYENDPOINT=http://127.0.0.1/service/v1
     $ functions
@@ -142,12 +156,12 @@ output of `easy --print`:
     }
     $
 
-Now you can just call `DELETE`, `GET` etc. If you want to use a different
-endpoint, simply reset the value of `$EASYENDPOINT` or temporarily override
-it by passing an endpoint with the `--endpoint` option.
+Now you can just call ``DELETE``, ``GET`` etc. If you want to use a different
+endpoint, simply reset the value of ``$EASYENDPOINT`` or temporarily override
+it by passing an endpoint with the ``--endpoint`` option.
 
 If you use csh(1) or tcsh(1), you can get definitions that your shell will
-understand too. Note that easy(1) relies on the value of `$SHELL` to determine
+understand too. Note that easy(1) relies on the value of ``$SHELL`` to determine
 what to do, so if you call a new shell from an existing shell you may have
 to set that variable properly yourself.
 
@@ -177,6 +191,7 @@ different arguments for different methods:
     $ 
 
 
+--------------------------------------------
 Open Standard Input in the Right Application
 --------------------------------------------
 
