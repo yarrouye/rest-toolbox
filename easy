@@ -100,7 +100,7 @@ callcurl() {
 	then
 	    prettyarg=-C
 	fi
-	pretty $prettyarg $hdrfile 2>/dev/null
+	grep -v '^Transfer-Encoding:' $hdrfile | pretty $prettyarg 2>/dev/null
 	echo
 	type="`sed -n 's/^Content-Type:[ 	]*\([^;]*\).*$/\1/p' $hdrfile | tr -d '[\012\015]'`"
 	if [ -z "$type" ]
