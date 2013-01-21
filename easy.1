@@ -20,7 +20,7 @@
 .Op Fl Fl cmd Ar file
 .Op Fl Fl no-env
 .Op Fl Fl no-extras
-.Op Fl j , Fl Fl json
+.Op Fl j , Fl Fl json | Fl A , Fl Fl as-is
 .Op Fl B , Fl Fl baked
 .Op Fl W , Fl Fl wet
 .Op Fl C , Fl Fl cooked
@@ -110,6 +110,10 @@ uses such arguments to suppress the progress meter, follow redirections, etc.
 Indicate that data sent is JSON and automatically includes an Accept header
 for
 .Cm application/json .
+.It Fl A , Fl Fl as-is
+Send data as-is. This option is convenient to negate the effects of the
+.Fl j , Fl Fl json
+option.
 .It Fl B , Fl Fl baked
 Bake arguments into the proper data format for submission. Any
 consecutive arguments

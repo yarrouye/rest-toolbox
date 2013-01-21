@@ -14,8 +14,8 @@ me=`basename $0`
 
 case "$me" in
     rest)
-	json=yes
-	baked=yes
+	json=1
+	baked=1
 	cooked=1
 	;;
 esac
@@ -32,7 +32,7 @@ usage() {
         u=u
         exec >&2
     fi
-    echo $u"sage: $me [--help] [--print [-s] [-p prefix] [[no]env,[no]func,all]] [--cmd file] [--no-env] [--no-extras] [-j, --json ] [-B, --baked] [-W, --wet] [-C, --cooked] [-R, --raw] [--endpoint endpoint] [-q, --query query] [-O, --override] [-V]  method resource [data] [curlopt ...]"
+    echo $u"sage: $me [--help] [--print [-s] [-p prefix] [[no]env,[no]func,all]] [--cmd file] [--no-env] [--no-extras] [-j, --json | -A, --as-is ] [-B, --baked] [-W, --wet] [-C, --cooked] [-R, --raw] [--endpoint endpoint] [-q, --query query] [-O, --override] [-V]  method resource [data] [curlopt ...]"
     if [ "$1" -eq 0 ]
     then
         cat <<EOF
@@ -43,6 +43,7 @@ usage() {
        --no-env             Do not use environment variables
        --no-extras          Do not add extra behavior not explicitly asked for
        -j, --json           Send and receive JSON
+       -A, --as-is          Send and data as-is (convenient to negate -j, --json)
        -B, --baked          Bake data from command line
        -W, --wet	    Do not bake data from command line
        -C, --cooked         Cook response contents
@@ -156,24 +157,24 @@ call() {
     case "$method" in
 	TRACE)
 	    xopt="-X $method"
-	    takesdata=yes
+	    takesdata=1
 	    ;;
  	POST)
 	    dataopt=--data-binary
 	    datafileprefix=@
-	    takesdata=yes
+	    takesdata=1
 	    ;;
  	PUT)
 	    dataopt=-T
 	    datafileprefix=
-	    takesdata=yes
+	    takesdata=1
 	    ;;
 	GET)
 	    opt=-G
 	    ;;
 	HEAD)
 	    opt=-I
-	    raw=yes
+	    raw=1
 	    ;;
     esac
 
@@ -236,7 +237,7 @@ call() {
 		shift
 		;;
 	    -*)
-		nodatagiven=yes
+		nodatagiven=1
 		;;
 	    *)
 		data="$1"
@@ -249,7 +250,7 @@ call() {
 	then
 	    if [ -n "$nodatagiven" -o -z "$data" ]
 	    then
-		nodata=yes
+		nodata=1
 	    fi
 	    if [ "$useeditor" == "yesyes" -o -n "nodata" ]
 	    then
@@ -315,10 +316,13 @@ takeiteasy() {
 		    curlopt=
 		    case "$l" in
 			j)
-			    json=yes
+			    json=1
+			    ;;
+			A)
+			    json=
 			    ;;
 			B)
-			    baked=yes
+			    baked=1
 			    ;;
 			W)
 			    baked=
@@ -336,7 +340,7 @@ takeiteasy() {
 			    query="?$1"
 			    ;;
 			O)
-			    httpoverride=yes
+			    httpoverride=1
 			    ;;
 			V)
 			    case "$useeditor" in
@@ -344,7 +348,7 @@ takeiteasy() {
 				    useeditor="${useeditor}yes"
 				    ;;
 				"")
-				    useeditor=yes
+				    useeditor=1
 				    ;;
 			    esac
 			    ;;
@@ -353,7 +357,7 @@ takeiteasy() {
 			    then
 				usage 1     # Our options, unknown letter
 			    else
-				curlopt=yes
+				curlopt=1
 				break       # cURL option
 			    fi
 			    ;;
@@ -361,7 +365,7 @@ takeiteasy() {
 		done
 		if [ -n "$curlopt" ]
 		then
-		    donotquotearg=yes
+		    donotquotearg=1
 		    break
 		fi
 		;;
@@ -377,7 +381,7 @@ takeiteasy() {
 	    --print)
 		test $# -gt 1 || usage 1
 		shift
-		donotquotearg=yes
+		donotquotearg=1
 		while [ $# -gt 1 ]
 		do
 		    case "$1" in
@@ -386,7 +390,7 @@ takeiteasy() {
 			    do
 				case "$l" in
 				    s)
-					printselfcontained=yes
+					printselfcontained=1
 					;;
 				    p)
 					test $# -gt 1 || usage 1
@@ -412,15 +416,15 @@ takeiteasy() {
 			env)
 			    ;;
 			noenv)
-			    noprintenv=yes
+			    noprintenv=1
 			    ;;
 			func)
 			    ;;
 			nofunc)
-			    noprintshellcmd=yes
+			    noprintshellcmd=1
 			    ;;
 			all)
-			    printall=yes
+			    printall=1
 			    ;;
 			*)
 			    >&2 echo $me: unknown --print argument: $f && exit 5
@@ -429,16 +433,19 @@ takeiteasy() {
 		done
 		;;
 	    --no-env)
-		noenv=yes
+		noenv=1
 		;;
 	    --no-extras)
-		clean=yes
+		clean=1
 		;;
 	    --json)
-		json=yes
+		json=1
+		;;
+	    --as-is)
+		json=
 		;;
 	    --baked)
-		baked=yes
+		baked=1
 		;;
 	    --wet)
 		baked=
@@ -451,12 +458,12 @@ takeiteasy() {
 		;;
 	    --endpoint)
 		test $# -gt 1 || usage 1
-		donotquotearg=yes
+		donotquotearg=1
 		shift
 		EASYENDPOINT=$1
 		;;
 	    --override)
-		httpoverride=yes
+		httpoverride=1
 		;;
 	    --query)
 		test $# -gt 1 || usage 1
@@ -540,7 +547,7 @@ takeiteasy() {
 			print_methods=${method:-$easy_methods}
 			case "${SHELL:-/bin/sh}" in
 			    */csh*|*/tcsh*)
-				csh=yes
+				csh=1
 				quoteforsh=--in-quotes
 				;;
 			esac
