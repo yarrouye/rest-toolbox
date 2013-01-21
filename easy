@@ -12,6 +12,16 @@ me=`basename $0`
 : ${XDG_DATA_HOME:=$HOME/.local/share}
 : ${XDG_DATA_DIRS:=/usr/local/share/:/usr/share/}
 
+case "$me" in
+    rest)
+	json=yes
+	baked=yes
+	cooked=1
+	;;
+esac
+
+#
+
 easy_methods="DELETE HEAD GET OPTIONS PATCH POST PUT TRACE"
 
 usage() {
@@ -22,7 +32,7 @@ usage() {
         u=u
         exec >&2
     fi
-    echo $u"sage: $me [--help] [--print [-s] [-p prefix] [[no]env,[no]func,all]] [--cmd file] [--no-env] [--no-extras] [-j, --json] [-B, --baked] [-W, --wet] [-C, --cooked] [-R, --raw] [--endpoint endpoint] [-q, --query query] [-O, --override] [-V]  method resource [data] [curlopt ...]"
+    echo $u"sage: $me [--help] [--print [-s] [-p prefix] [[no]env,[no]func,all]] [--cmd file] [--no-env] [--no-extras] [-j, --json ] [-B, --baked] [-W, --wet] [-C, --cooked] [-R, --raw] [--endpoint endpoint] [-q, --query query] [-O, --override] [-V]  method resource [data] [curlopt ...]"
     if [ "$1" -eq 0 ]
     then
         cat <<EOF
@@ -55,7 +65,7 @@ urlencode() {
 }
 
 quotestr() {
-    echo "$@" | sed 's/"/\\\"/g'
+    echo ${1+"$@"} | sed 's/"/\\\"/g'
 }
 
 quote() {
@@ -93,7 +103,7 @@ callcurl() {
 	contentfile=`mktemp $TMPDIR/$me.XXXXXX`
 	trap "rm -f $hdrfile $contentfile" 0 1 2 3 4 5 6 7 8 15
 
-	curl "$@" -D $hdrfile -o $contentfile
+	curl ${1+"$@"} -D $hdrfile -o $contentfile
 	res=$?
 
     	if [ $cooked -gt 1 ]
@@ -116,7 +126,7 @@ callcurl() {
 	fi
 	rm -f $hdrfile $contentfile
     else
-        curl "$@"
+        curl ${1+"$@"}
 	res=$?
     fi
     if [ -n "$printfile" ]
@@ -125,7 +135,7 @@ callcurl() {
 	then
 	    exec >$printfile || exit "$me: could not write to $printfile"
 	fi
-	quote curl "$@"
+	quote curl ${1+"$@"}
     fi
     exit $res
 }
@@ -140,11 +150,26 @@ call() {
     host=`echo $EASYENDPOINT | sed -e 's,^[a-z]*://\(.*\),\1,' -e 's,/.*,,'`
     hostdir=`echo $host | sed -e 's,:, ,g'`
 
-    urlbase=$proto://$host
+    urlbase=`echo $EASYENDPOINT | sed 's,/$,,'`
 
+    datafile=
     case "$method" in
-	P*|TRACE)
+	TRACE)
+	    xopt="-X $method"
 	    takesdata=yes
+	    ;;
+ 	POST)
+	    dataopt=--data-binary
+	    datafileprefix=@
+	    takesdata=yes
+	    ;;
+ 	PUT)
+	    dataopt=-T
+	    datafileprefix=
+	    takesdata=yes
+	    ;;
+	GET)
+	    opt=-G
 	    ;;
 	HEAD)
 	    opt=-I
@@ -262,342 +287,362 @@ call() {
 	json2="Accept: application/json; charset=utf-8"
     fi
 
-    callcurl $mycurlopts $EASYOPTS $opt --data-binary "$data" \
-	-X $method -H "$httpoverride" -H "$json1" -H "$json2" \
-        $EASYCURLOPTS "$@" $urlbase$resource
+    if [ -n "$dataopt" ]
+    then
+        datafile=$TMPDIR/`mktemp $me.XXXXXX`
+        echo "$data" >$datafile
+        data="$datafileprefix$datafile"
+    fi
+
+    callcurl $mycurlopts $EASYCURLOPTS $opt $dataopt $data \
+	$xopt -H "$httpoverride" -H "$json1" -H "$json2" \
+        $EASYCURLOPTS ${1+"$@"} $urlbase$resource
+
+    rm -f $datfile
 }
 
 #
 
-while [ $# -ne 0 ]
-do
-    donotquotearg=
-    firstquotearg=
-    case "$1" in
-	-[^-]*)
-	    for l in `echo $1 | sed -e 's/^-//' -e 's/\(.\)/\1 /g'`
-	    do
-		case "$l" in
-		    j)
-			json=yes
-			;;
-		    B)
-			baked=yes
-			;;
-		    W)
-			baked=
-			;;
-		    C)
-			cooked=`expr 0$cooked + 1`
-			;;
-		    R)
-			cooked=
-			;;
-		    q)
-			test $# -gt 1 || usage 1
-			firstquotearg="$1"
-			shift
-			query="?$1"
-			;;
-		    O)
-			httpoverride=yes
-			;;
-		    V)
-			case "$useeditor" in
-			    yes)
-				useeditor="${useeditor}yes"
-				;;
-			    "")
-				useeditor=yes
-				;;
-			esac
-			;;
-		    *)
-			if [ "$1" != "-$l" ]
-			then
-			    usage 1     # Our options, unknown letter
-			else
-			    break       # cURL option
-			fi
-			;;
-		esac
-	    done
-	    ;;
-	--help)
-	    usage 0
-	    ;;
-	--cmd)
-	    test $# -gt 1 || usage 1
-	    firstquotearg="$1"
-	    shift
-	    printfile=$1
-	    ;;
-	--print)
-	    test $# -gt 1 || usage 1
-	    shift
-	    donotquotearg=yes
-	    while [ $# -gt 1 ]
-	    do
-		case "$1" in
-		    -[^-]*)
-			for l in `echo $1 | sed -e 's/^-//' -e 's/\(.\)/\1 /g'`
-			do
-			    case "$l" in
-				s)
-				    printselfcontained=yes
+takeiteasy() {
+    while [ $# -ne 0 ]
+    do
+	donotquotearg=
+	firstquotearg=
+	case "$1" in
+	    -[^-]*)
+		for l in `echo $1 | sed -e 's/^-//' -e 's/\(.\)/\1 /g'`
+		do
+		    curlopt=
+		    case "$l" in
+			j)
+			    json=yes
+			    ;;
+			B)
+			    baked=yes
+			    ;;
+			W)
+			    baked=
+			    ;;
+			C)
+			    cooked=`expr 0$cooked + 1`
+			    ;;
+			R)
+			    cooked=
+			    ;;
+			q)
+			    test $# -gt 1 || usage 1
+			    firstquotearg="$1"
+			    shift
+			    query="?$1"
+			    ;;
+			O)
+			    httpoverride=yes
+			    ;;
+			V)
+			    case "$useeditor" in
+				yes)
+				    useeditor="${useeditor}yes"
 				    ;;
-				p)
-				    test $# -gt 1 || usage 1
-				    shift
-				    printprefix="$1"
-				    ;;
-				*)
-				    usage 1
+				"")
+				    useeditor=yes
 				    ;;
 			    esac
-			done
-			;;
-		    *)
-			break
-			;;
-		esac
-		shift
-	    done
-	    printshell=$1
-	    for f in `echo $printshell | sed 's/,/ /g'`
-	    do
-		case "$f" in
-		    env)
-			;;
-		    noenv)
-			noprintenv=yes
-			;;
-		    func)
-			;;
-		    nofunc)
-			noprintshellcmd=yes
-			;;
-		    all)
-			printall=yes
-			;;
-		    *)
-			>&2 echo $me: unknown --print argument: $f && exit 5
-			;;
-		esac
-	    done
-	    ;;
-	--no-env)
-	    noenv=yes
-	    ;;
-	--no-extras)
-	    clean=yes
-	    ;;
-	--json)
-	    json=yes
-	    ;;
-	--baked)
-	    baked=yes
-	    ;;
-	--wet)
-	    baked=
-	    ;;
-	--cooked)
-	    cooked=`expr 0$cooked + 1`
-	    ;;
-	--raw)
-	    cooked=
-	    ;;
-	--endpoint)
-	    test $# -gt 1 || usage 1
-	    donotquotearg=yes
-	    shift
-	    EASYENDPOINT=$1
-	    ;;
-	--override)
-	    httpoverride=yes
-	    ;;
-	--query)
-	    test $# -gt 1 || usage 1
-	    firstquotearg="$1"
-	    shift
-	    query="?$1"
-	    ;;
-	-*)
-	    break
-	    ;;
-	*)
-	    if [ -z "$method" ]
-	    then
-		method=$1
-		if [ -n "$printshellcmd" ]
-		then
-		    shift
-		    break
-		fi
-	    else
-		break
-	    fi
-	    ;;
-    esac
-    if [ -z "$donotquotearg" ]
-    then
-	if [ -n "$firstquotearg" ]
-	then
-            quotedarg=`quote "$firstquotearg"`
-            quotedargs="$quotedargs $quotedarg"
-	fi
-        quotedarg=`quote "$1"`
-        quotedargs="$quotedargs $quotedarg"
-    fi
-    shift
-done
-
-if [ -n "$noenv" ]
-then
-    unset EASYENDPOINTS
-    unset EASYCURLOPTS
-fi
-if [ -z "$clean" ]
-then
-    mycurlopts=-LsS
-fi
-
-if [ -n "$printshell" ]
-then
-    # Process the --print arguments in the order we have seen then
-
-    if [ -n "$printselfcontained" ]
-    then
-	allargs=${printall:+func}
-    else
-	allargs=${printall:+env,func,config}
-    fi
-    
-    for f in `echo $printshell,$allargs | sed 's/,/ /g'`
-    do
-	case "$f" in
-	    env)
-		if [ -z "$noprintenv" ]
-		then
-		    case "${SHELL:-/bin/sh}" in
-			*/csh*|*/tcsh*)
-			    export="setenv"
-			    exporteq=" "
 			    ;;
 			*)
-			    export="export"
-			    exporteq="="
+			    if [ "$1" != "-$l" ]
+			    then
+				usage 1     # Our options, unknown letter
+			    else
+				curlopt=yes
+				break       # cURL option
+			    fi
 			    ;;
 		    esac
-		    test -n "$EASYENDPOINT" && echo "$export EASYENDPOINT$exporteq`quote $EASYENDPOINT`;"
+		done
+		if [ -n "$curlopt" ]
+		then
+		    donotquotearg=yes
+		    break
 		fi
 		;;
-	    func)
-		if [ -z "$noprintshellcmd" ]
-		then
-		    print_methods=${method:-$easy_methods}
-		    case "${SHELL:-/bin/sh}" in
-			*/csh*|*/tcsh*)
-			    csh=yes
-			    quoteforsh=--in-quotes
+	    --help)
+		usage 0
+		;;
+	    --cmd)
+		test $# -gt 1 || usage 1
+		firstquotearg="$1"
+		shift
+		printfile=$1
+		;;
+	    --print)
+		test $# -gt 1 || usage 1
+		shift
+		donotquotearg=yes
+		while [ $# -gt 1 ]
+		do
+		    case "$1" in
+			-[^-]*)
+			    for l in `echo $1 | sed -e 's/^-//' -e 's/\(.\)/\1 /g'`
+			    do
+				case "$l" in
+				    s)
+					printselfcontained=yes
+					;;
+				    p)
+					test $# -gt 1 || usage 1
+					shift
+					printprefix="$1"
+					;;
+				    *)
+					usage 1
+					;;
+				esac
+			    done
+			    ;;
+			*)
+			    break
 			    ;;
 		    esac
-		    if [ -n "$printselfcontained" ]
+		    shift
+		done
+		printshell=$1
+		for f in `echo $printshell | sed 's/,/ /g'`
+		do
+		    case "$f" in
+			env)
+			    ;;
+			noenv)
+			    noprintenv=yes
+			    ;;
+			func)
+			    ;;
+			nofunc)
+			    noprintshellcmd=yes
+			    ;;
+			all)
+			    printall=yes
+			    ;;
+			*)
+			    >&2 echo $me: unknown --print argument: $f && exit 5
+			    ;;
+		    esac
+		done
+		;;
+	    --no-env)
+		noenv=yes
+		;;
+	    --no-extras)
+		clean=yes
+		;;
+	    --json)
+		json=yes
+		;;
+	    --baked)
+		baked=yes
+		;;
+	    --wet)
+		baked=
+		;;
+	    --cooked)
+		cooked=`expr 0$cooked + 1`
+		;;
+	    --raw)
+		cooked=
+		;;
+	    --endpoint)
+		test $# -gt 1 || usage 1
+		donotquotearg=yes
+		shift
+		EASYENDPOINT=$1
+		;;
+	    --override)
+		httpoverride=yes
+		;;
+	    --query)
+		test $# -gt 1 || usage 1
+		firstquotearg="$1"
+		shift
+		query="?$1"
+		;;
+	    -*)
+		break
+		;;
+	    *)
+		if [ -z "$method" ]
+		then
+		    method=$1
+		    if [ -n "$printshellcmd" ]
 		    then
-			test -n "$EASYENDPOINT" && endpointarg=" --endpoint `quote $quoteforsh $EASYENDPOINT`"
-			test -n "$EASYCURLOPTS" && easycurloptsarg=" `quote $quoteforsh $EASYCURLOPTS`"
+			shift
+			break
 		    fi
-		    if [ -n "$printconfig" ]
-		    then
-			:
-			shift $#
-		    else
-    			args=" "`quote $quoteforsh "$@"`
-			if [ -n "$printselfcontained" ]
-			then
-			    if [ -n "$easycurloptsarg" ]
-			    then
-				easyargs="$easycurloptsarg"
-			    fi
-		     	    easyargs=" --no-env$easyargs$endpointarg"
-			fi
-		    fi
-		    if [ -n "$quotedargs" ]
-		    then
-			quotedargs="$quotedargs "
-		    fi
-		    if [ -n "$csh" ]
-		    then
-			if [ -n "$args" ]
-			then
-			    aliasargs=' \!*'
-			fi
-			for method in $print_methods
-			do
-			    cat <<EOF
-alias $printprefix$method '$me$easyargs$quotedargs$method$aliasargs$args';
-EOF
-			done
-		    else
-			for method in $print_methods
-			do
-			    cat <<EOF
-$printprefix$method () {
-    $me$easyargs$quotedargs$method "\$@"$args
-};
-EOF
-			done
-		    fi
+		else
+		    break
 		fi
 		;;
 	esac
+	if [ -z "$donotquotearg" ]
+	then
+	    if [ -n "$firstquotearg" ]
+	    then
+		quotedarg=`quote "$firstquotearg"`
+		quotedargs="$quotedargs $quotedarg"
+	    fi
+            quotedarg=`quote "$1"`
+            quotedargs="$quotedargs $quotedarg"
+	fi
+	shift
     done
 
-    exit 0
-fi
+    if [ -n "$noenv" ]
+    then
+	unset EASYENDPOINTS
+	unset EASYCURLOPTS
+    fi
+    if [ -z "$clean" ]
+    then
+	mycurlopts=-LsS
+    fi
+
+    if [ -n "$printshell" ]
+    then
+    # Process the --print arguments in the order we have seen then
+
+	if [ -n "$printselfcontained" ]
+	then
+	    allargs=${printall:+func}
+	else
+	    allargs=${printall:+env,func,config}
+	fi
+	
+	for f in `echo $printshell,$allargs | sed 's/,/ /g'`
+	do
+	    case "$f" in
+		env)
+		    if [ -z "$noprintenv" ]
+		    then
+			case "${SHELL:-/bin/sh}" in
+			    */csh*|*/tcsh*)
+				export="setenv"
+				exporteq=" "
+				;;
+			    *)
+				export="export"
+				exporteq="="
+				;;
+			esac
+			test -n "$EASYENDPOINT" && echo "$export EASYENDPOINT$exporteq`quote $EASYENDPOINT`;"
+		    fi
+		    ;;
+		func)
+		    if [ -z "$noprintshellcmd" ]
+		    then
+			print_methods=${method:-$easy_methods}
+			case "${SHELL:-/bin/sh}" in
+			    */csh*|*/tcsh*)
+				csh=yes
+				quoteforsh=--in-quotes
+				;;
+			esac
+			if [ -n "$printselfcontained" ]
+			then
+			    test -n "$EASYENDPOINT" && endpointarg=" --endpoint `quote $quoteforsh $EASYENDPOINT`"
+			    test -n "$EASYCURLOPTS" && easycurloptsarg=" `quote $quoteforsh $EASYCURLOPTS`"
+			fi
+			if [ -n "$printconfig" ]
+			then
+			    :
+			    shift $#
+			else
+    			    args=" "`quote $quoteforsh ${1+"$@"}`
+			    if [ -n "$printselfcontained" ]
+			    then
+				if [ -n "$easycurloptsarg" ]
+				then
+				    easyargs="$easycurloptsarg"
+				fi
+		     		easyargs=" --no-env$easyargs$endpointarg"
+			    fi
+			fi
+			if [ -n "$quotedargs" ]
+			then
+			    quotedargs="$quotedargs "
+			fi
+			if [ -n "$csh" ]
+			then
+			    if [ -n "$args" ]
+			    then
+				aliasargs=' \!*'
+			    fi
+			    for method in $print_methods
+			    do
+				cat <<EOF
+alias $printprefix$method '$me$easyargs$quotedargs $method$aliasargs$args';
+EOF
+			    done
+			else
+			    for method in $print_methods
+			    do
+				cat <<EOF
+$printprefix$method () {
+    $me$easyargs$quotedargs $method "\$@"$args
+};
+EOF
+			    done
+			fi
+		    fi
+		    ;;
+	    esac
+	done
+
+	exit 0
+    fi
 
 #
 
-if [ -z "$method" ]
-then
-    test $# -ge 1 || usage 1
-    method=$1
-    shift
-fi
-
-if echo " $easy_methods " | fgrep -q " $method "
-then
-    if [ -n "$assumecmdname" ]
+    if [ -z "$method" ]
     then
-	me=$method
+	test $# -ge 1 || usage 1
+	method=$1
+	shift
     fi
-    
+
+    if echo " $easy_methods " | fgrep -q " $method "
+    then
+	if [ -n "$assumecmdname" ]
+	then
+	    me=$method
+	fi
+	
     # See if the resource path is actually a URI. If so, extract the
     # endpoint ans resource path from there and pass the computed resource
     # path for the call.
 
-    case "`echo $1 | tr '[A-Z]' '[a-z]'`" in
-	http://*|https://*)
-	    EASYENDPOINT=`echo $1 | sed 's,^\([^/]*:///*[^/]*\).*,\1,'`
-	    resourcepath=`echo $1 | sed 's,^[^/]*:///*[^/]*\(.*\),\1,'`
-	    shift
-	    ;;
-    esac
-    if [ -z "$EASYENDPOINT" ]
-    then
-	>&2 echo $me: unable to determine an endpoint to call
-	exit 2
+	case "`echo $1 | tr '[A-Z]' '[a-z]'`" in
+	    http://*|https://*)
+		EASYENDPOINT=`echo $1 | sed 's,^\([^/]*:///*[^/]*\).*,\1,'`
+		resourcepath=`echo $1 | sed 's,^[^/]*:///*[^/]*\(.*\),\1,'`
+		shift
+		;;
+	esac
+	if [ -z "$EASYENDPOINT" ]
+	then
+	    >&2 echo $me: unable to determine an endpoint to call
+	    exit 2
+	fi
+	
+	call $method $resourcepath$query ${1+"$@"}
+    else
+	case "$method" in
+	    -*)
+		usage 1
+		;;
+	    *)
+		>&2 echo $me: unknown method: $method
+		exit 6
+		;;
+	esac
     fi
-    
-    call $method $resourcepath$query "$@"
-else
-    case "$method" in
-	-*)
-	    usage 1
-	    ;;
-	*)
-	    >&2 echo $me: unknown method: $method
-	    exit 6
-	    ;;
-    esac
-fi
+}
+
+takeiteasy $EASYOPTS ${1+"$@"}
