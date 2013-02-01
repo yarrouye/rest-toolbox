@@ -12,6 +12,8 @@ INSTALL = /usr/bin/install -c
 INSTALL_DATA = $(INSTALL) -m 644
 INSTALL_SCRIPT = $(INSTALL)
 
+LN = /bin/ln
+
 TAR = /usr/bin/tar
 SED = /usr/bin/sed
 
@@ -41,9 +43,11 @@ install: all
 	for f in $(dist_bin_SCRIPTS); do \
 	    $(INSTALL_SCRIPT) $$f $(DESTDIR)$(bindir) || exit 1; \
         done
+	cd $(DESTDIR)$(bindir) && $(LN) -fs easy rest
 	for f in $(dist_MAN1_MANS); do \
 	    $(INSTALL_DATA) $$f $(DESTDIR)$(mandir)/man1 || exit 1; \
 	done
+	cd $(DESTDIR)$(mandir)/man1 && $(LN) -fs easy.1 rest.1
 	for f in $(dist_DATA); do \
 	    $(INSTALL_DATA) $$f $(DESTDIR)$(datadir) || exit 1; \
 	done

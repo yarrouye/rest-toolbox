@@ -1,6 +1,6 @@
 #! /bin/sh
 
-# easy(1): interact with EASY services
+# easy(1): interact with HTTP servers and REST services
 #
 # Yves Arrouye
 
@@ -12,11 +12,14 @@ me=`basename $0`
 : ${XDG_DATA_HOME:=$HOME/.local/share}
 : ${XDG_DATA_DIRS:=/usr/local/share/:/usr/share/}
 
+# If invoked as rest(1), use baked and cooked modes by default and assume
+# one wants JSON.
+
 case "$me" in
     rest)
-	json=1
-	baked=1
-	cooked=1
+	default_content=json
+	default_baked=1
+	default_cooked=1
 	;;
 esac
 
@@ -32,7 +35,7 @@ usage() {
         u=u
         exec >&2
     fi
-    echo $u"sage: $me [--help] [--print [-s] [-p prefix] [[no]env,[no]func,all]] [--cmd file] [--no-env] [--no-extras] [-j, --json | -A, --as-is ] [-B, --baked] [-W, --wet] [-C, --cooked] [-R, --raw] [--endpoint endpoint] [-q, --query query] [-O, --override] [-V]  method resource [data] [curlopt ...]"
+    echo $u"sage: $me [--help] [--print [-s] [-p prefix] [[no]env,[no]func,all]] [--cmd file] [--no-env] [--no-extras] [-j, --json | -f, --form | -a, --as-is ] [-B, --baked] [-W, --wet] [-C, --cooked] [-R, --raw] [--endpoint endpoint] [-q, --query query] [-O, --override] [-V]  method resource [data] [curlopt ...]"
     if [ "$1" -eq 0 ]
     then
         cat <<EOF
@@ -42,8 +45,9 @@ usage() {
        --cmd file           Print the curl(1) command to file
        --no-env             Do not use environment variables
        --no-extras          Do not add extra behavior not explicitly asked for
-       -j, --json           Send and receive JSON
-       -A, --as-is          Send and data as-is (convenient to negate -j, --json)
+       -j, --json           Send and receive JSON data
+       -f, --form           Send and receive form data
+       -a, --as-is          Send and receive data without modifications
        -B, --baked          Bake data from command line
        -W, --wet	    Do not bake data from command line
        -C, --cooked         Cook response contents
@@ -98,7 +102,7 @@ quote() {
 }
 
 callcurl() {
-    if [ -n "$cooked" ]
+    if [ "0$cooked" -gt 0 ]
     then
 	hdrfile=`mktemp $TMPDIR/$me.XXXXXX`
 	contentfile=`mktemp $TMPDIR/$me.XXXXXX`
@@ -107,7 +111,7 @@ callcurl() {
 	curl ${1+"$@"} -D $hdrfile -o $contentfile
 	res=$?
 
-    	if [ $cooked -gt 1 ]
+    	if [ "0$cooked" -gt 1 ]
 	then
 	    prettyarg=-C
 	fi
@@ -157,20 +161,28 @@ call() {
     case "$method" in
 	TRACE)
 	    xopt="-X $method"
-	    takesdata=1
+	    takesdata=yes
 	    ;;
  	POST)
-	    dataopt=--data-binary
+	    case "$content" in
+	        json|asis)
+		    dataopt=--data-binary
+		    ;;
+		form)
+		    dataopt=--data-urlencode
+		    ;;
+	    esac	
 	    datafileprefix=@
-	    takesdata=1
+	    takesdata=yes
 	    ;;
  	PUT)
 	    dataopt=-T
 	    datafileprefix=
-	    takesdata=1
+	    takesdata=yes
 	    ;;
 	GET)
 	    opt=-G
+	    takesdata=yes
 	    ;;
 	HEAD)
 	    opt=-I
@@ -181,10 +193,10 @@ call() {
     if [ -n "$takesdata" ]
     then
 	nodatagiven=
-	if [ -n "$baked" ]
+	if [ "0$baked" -ne 0 ]
 	then
 	    data=""
-	    if [ -n "$json" ]
+	    if [ "$content" = json ]
 	    then
 		datastart="{"
 		dataend="}"
@@ -207,7 +219,7 @@ call() {
 			else
 			    data="$data$datasep"
 			fi
-			if [ -n "$json" ]
+	    	        if [ "$content" = json ]
 			then
 			    data="$data"'"'"`quotestr $key`"'"'"="
 			    if [ -n "$literal" ]
@@ -282,10 +294,10 @@ call() {
 	method=POST
     fi
 
-    if [ -n "$json" ]
+    if [ "$content" = json ]
     then
-	json1="Content-Type: application/json; charset=utf-8"
-	json2="Accept: application/json; charset=utf-8"
+	contenthdr="Content-Type: application/json; charset=utf-8"
+	accepthdr="Accept: application/json; charset=utf-8"
     fi
 
     if [ -n "$dataopt" ]
@@ -296,7 +308,7 @@ call() {
     fi
 
     callcurl $mycurlopts $EASYCURLOPTS $opt $dataopt $data \
-	$xopt -H "$httpoverride" -H "$json1" -H "$json2" \
+	$xopt -H "$httpoverride" -H "$contenthdr" -H "$accepthdr" \
         $EASYCURLOPTS ${1+"$@"} $urlbase$resource
 
     rm -f $datfile
@@ -316,22 +328,25 @@ takeiteasy() {
 		    curlopt=
 		    case "$l" in
 			j)
-			    json=1
+			    content=json
 			    ;;
-			A)
-			    json=
+			f)
+			    content=form
+			    ;;
+			a)
+			    content=asis
 			    ;;
 			B)
 			    baked=1
 			    ;;
 			W)
-			    baked=
+			    baked=0
 			    ;;
 			C)
 			    cooked=`expr 0$cooked + 1`
 			    ;;
 			R)
-			    cooked=
+			    cooked=0
 			    ;;
 			q)
 			    test $# -gt 1 || usage 1
@@ -439,22 +454,25 @@ takeiteasy() {
 		clean=1
 		;;
 	    --json)
-		json=1
+		content=json
+		;;
+	    --form)
+		content=form
 		;;
 	    --as-is)
-		json=
+		content=asis
 		;;
 	    --baked)
 		baked=1
 		;;
 	    --wet)
-		baked=
+		baked=0
 		;;
 	    --cooked)
 		cooked=`expr 0$cooked + 1`
 		;;
 	    --raw)
-		cooked=
+		cooked=0
 		;;
 	    --endpoint)
 		test $# -gt 1 || usage 1
@@ -500,6 +518,10 @@ takeiteasy() {
 	fi
 	shift
     done
+
+    : ${content:=$default_content}
+    : ${baked:=$default_baked}
+    : ${cooked:=$default_cooked}
 
     if [ -n "$noenv" ]
     then
@@ -652,4 +674,26 @@ EOF
     fi
 }
 
+# Do a quick check for --no-env first...
+
+for arg
+do
+    case "$arg" in
+	--no-env)
+	    noenv=yes
+	    ;;
+        -*)
+	    ;;
+	*)
+	    break
+	    ;;
+    esac
+done
+
+if [ -n "$noenv" ]
+then
+    unset EASYOPTS
+fi
+
 takeiteasy $EASYOPTS ${1+"$@"}
+

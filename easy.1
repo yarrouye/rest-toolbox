@@ -35,6 +35,8 @@
 .Op Ar curlopt ...
 .Sh DESCRIPTION          \" Section Header - required - don't modify
 .Nm
+(also known as
+.Cm rest )
 makes interacting with HTTP servers easy.
 It allows one to use the name of an HTTP method followed by a resource path
 (relative to a given
@@ -48,13 +50,20 @@ in order to actually communicate with the HTTP server. It exits with the
 status code from
 .Xr curl 1 .
 .Pp
+When invoked as
+.Cm rest ,
+.Nm
+behaves as if the options
+.Fl jBC
+were passed to it.
+.Pp
 The following options are available:
 .Bl -tag -width -indent  \" Differs from above in tag removed 
 .It Fl Fl help               \"-a flag as a list item
 Print a help usage message documenting each option.
 .It Fl Fl print [ [ Fl s | Fl p Ar prefix ] Ar options ]
 Print shell commands that can be evaluated to set environment variables,
-define shortcut functions or aliased depending on the shell used, or both.
+define shortcut functions or aliases depending on the shell used, or both.
 The following arguments are valid:
 .Bl -tag -width ".Fl p Ar prefix" -indent
 .It Fl s
@@ -208,6 +217,9 @@ Options to always use.
 Options to pass to
 .Xr curl 1 .
 These options are passed before the ones present on the command line if any.
+.It Ev SHELL
+Determine the syntax (Bourne shell or C shell) of the commands printed by
+.Fl Fl print .
 .\" .It Ev ENV_VAR_1
 .\" Description of ENV_VAR_1
 .\" .It Ev ENV_VAR_2
