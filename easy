@@ -514,7 +514,7 @@ takeiteasy() {
 		quotedargs="$quotedargs $quotedarg"
 	    fi
             quotedarg=`quote "$1"`
-            quotedargs="$quotedargs $quotedarg"
+	    quotedargs="$quotedargs $quotedarg"
 	fi
 	shift
     done
@@ -551,7 +551,7 @@ takeiteasy() {
 		    if [ -z "$noprintenv" ]
 		    then
 			case "${SHELL:-/bin/sh}" in
-			    */csh*|*/tcsh*)
+			    csh|*/csh*|tcsh|*/tcsh*)
 				export="setenv"
 				exporteq=" "
 				;;
@@ -568,7 +568,7 @@ takeiteasy() {
 		    then
 			print_methods=${method:-$easy_methods}
 			case "${SHELL:-/bin/sh}" in
-			    */csh*|*/tcsh*)
+			    csh|*/csh*|tcsh|*/tcsh*)
 				csh=1
 				quoteforsh=--in-quotes
 				;;
@@ -583,7 +583,7 @@ takeiteasy() {
 			    :
 			    shift $#
 			else
-    			    args=" "`quote $quoteforsh ${1+"$@"}`
+    			    args=`quote $quoteforsh ${1+"$@"}`
 			    if [ -n "$printselfcontained" ]
 			    then
 				if [ -n "$easycurloptsarg" ]
@@ -593,9 +593,9 @@ takeiteasy() {
 		     		easyargs=" --no-env$easyargs$endpointarg"
 			    fi
 			fi
-			if [ -n "$quotedargs" ]
+			if [ -n "$args" ]
 			then
-			    quotedargs="$quotedargs "
+			    args=" $args"
 			fi
 			if [ -n "$csh" ]
 			then
