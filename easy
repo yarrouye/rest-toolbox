@@ -4,14 +4,14 @@
 #
 # Yves Arrouye
 
-: ${TMPDIR:=/tmp}
+# Set variables that we rely upon
+
 me=`basename $0`
+: ${TMPDIR:=/tmp}
 
-: ${XDG_CONFIG_HOME:=$HOME/.config}
-: ${XDG_CONFIG_DIRS:=/etc/xdg}
-: ${XDG_DATA_HOME:=$HOME/.local/share}
-: ${XDG_DATA_DIRS:=/usr/local/share/:/usr/share/}
-
+# Setup default behaviors. Those are setup by setting variables rather than
+# options.
+#
 # If invoked as rest(1), use baked and cooked modes by default and assume
 # one wants JSON.
 
@@ -23,9 +23,11 @@ case "$me" in
 	;;
 esac
 
-#
+# HTTP methods that we support
 
 easy_methods="DELETE HEAD GET OPTIONS PATCH POST PUT TRACE"
+
+# Print usage and help too if needed, then exit
 
 usage() {
     if [ "$1" -eq 0 ]
@@ -35,43 +37,52 @@ usage() {
         u=u
         exec >&2
     fi
-    echo $u"sage: $me [--help] [--print [-s] [-p prefix] [[no]env,[no]func,all]] [--cmd file] [--no-env] [--no-extras] [-j, --json | -f, --form | -a, --as-is ] [-B, --baked] [-W, --wet] [-C, --cooked] [-R, --raw] [--endpoint endpoint] [-q, --query query] [-O, --override] [-V]  method resource [data] [curlopt ...]"
+    echo $u"sage: $me [--help] [-P | --print [-s] [-p prefix] [no]env,[no]func,all] [--cmd file] [--no-env] [--no-extras] [-j, --json | -f, --form | -a, --as-is ] [-B, --baked] [-W, --wet] [-C, --cooked] [-R, --raw] [-E, --endpoint endpoint] [-q, --query query] [-O, --override] [-V] method resource [data] [curlopt ...]"
     if [ "$1" -eq 0 ]
     then
         cat <<EOF
 
-       --help               Show this message
-       --print [opts] what  Print commands to set env or define HTTP functions
-       --cmd file           Print the curl(1) command to file
-       --no-env             Do not use environment variables
-       --no-extras          Do not add extra behavior not explicitly asked for
-       -j, --json           Send and receive JSON data
-       -f, --form           Send and receive form data
-       -a, --as-is          Send and receive data without modifications
-       -B, --baked          Bake data from command line
-       -W, --wet	    Do not bake data from command line
-       -C, --cooked         Cook response contents
-       -R, --raw	    Do not cook response contents
-       --endpoint endpoint  Specifies an endpoint (overrides \$EASYENDPOINT)
-       -q, --query query    Include the query with the path
-       -O, --override       Override POST with the chosen method
-       -V                   Create needed data using an editor if possible
-       resource             Resource to operate on
-       data                 Data for methods taking data as input
-       curlopt ...	    Options for curl(1) in addition to \$RESCURLTOPTS
+       --help                   Show this message
+       -P | --print [opts] what Print commands to set env or define HTTP functions
+       --cmd file               Print the curl(1) command to file
+       --no-env                 Do not use environment variables
+       --no-extras              Do not add extra behavior not explicitly asked for
+       -j, --json               Send and receive JSON data
+       -f, --form               Send and receive form data
+       -a, --as-is              Send and receive data without modifications
+       -B, --baked              Bake data from command line
+       -W, --wet	        Do not bake data from command line
+       -C, --cooked             Cook response contents
+       -R, --raw	        Do not cook response contents
+       -E, --endpoint endpoint    Specifies an endpoint (overrides \$EASYENDPOINT)
+       -q, --query query        Include the query with the path
+       -O, --override           Override POST with the chosen method
+       -V                       Create needed data using an editor if possible
+       resource                 Resource to operate on
+       data                     Data for methods taking data as input
+       curlopt ...	        Options for curl(1) in addition to \$RESCURLTOPTS
 EOF
     fi
 
     exit $1
 }
 
+# Encode a string in URL encoded format.
+
 urlencode() {
   echo "$*" | sed 's/%/%25/g;s/\[/%5B/g;s/\]/%5D/g;s/|/%7C/g;s/\$/%24/g;s/&/%26/g;s/+/%2B/g;s/,/%2C/g;s/:/%3A/g;s/;/%3B/g;s/=/%3D/g;s/?/%3F/g;s/@/%40/g;s/ /%20/g;s/#/%23/g;s/{/%7B/g;s/}/%7D/g;s/\\/%5C/g;s/\^/%5E/g;s/~/%7E/g;s/`/%60/g'
 }
 
+# Escape double quotes in a string.
+
 quotestr() {
     echo ${1+"$@"} | sed 's/"/\\\"/g'
 }
+
+# Quote arguments if needed so that they can be passed without being
+# split. If the arguments will be in quotes then quote accordingly.
+#
+# Note: It is assumed that IFS will be made of space, tab and newline.
 
 quote() {
     if [ "$1" = "--in-quotes" ]
@@ -101,11 +112,14 @@ quote() {
     echo "$qargs" | sed 's/^ //'
 }
 
+# Call curl(1), cooking results as appropriate. Also prints the curl
+# invokation if needed.
+
 callcurl() {
     if [ "0$cooked" -gt 0 ]
     then
-	hdrfile=`mktemp $TMPDIR/$me.XXXXXX`
-	contentfile=`mktemp $TMPDIR/$me.XXXXXX`
+	hdrfile=`mktemp -t $me.XXXXXX`
+	contentfile=`mktemp -t $me.XXXXXX`
 	trap "rm -f $hdrfile $contentfile" 0 1 2 3 4 5 6 7 8 15
 
 	curl ${1+"$@"} -D $hdrfile -o $contentfile
@@ -142,8 +156,13 @@ callcurl() {
 	fi
 	quote curl ${1+"$@"}
     fi
-    exit $res
+
+    return $res
 }
+
+# Prepare the curl invokation command line appropriate for the method.
+# Bakes arguments if needed, gathers data and edit it through an editor
+# if appropriate.
 
 call() {
     method=$1
@@ -221,7 +240,7 @@ call() {
 			fi
 	    	        if [ "$content" = json ]
 			then
-			    data="$data"'"'"`quotestr $key`"'"'"="
+			    data="$data"'"'"`quotestr $key`"'"'":"
 			    if [ -n "$literal" ]
 			    then
 				data="$data`quote $val`"
@@ -270,7 +289,8 @@ call() {
                            || which vim || which vi) | tail -n 1`
 		if [ -n "$editor" ]
 		then
-		    tmpfile=`mktemp $TMPDIR/$me.XXXXXX`
+		    tmpfile=`mktemp -t $me.XXXXXX`
+		    trap "rm -f $tmpfile" 0 1 2 3 4 5 6 7 8 15
 		    if [ -n "$nodata" ]
 		    then
 			if [ ! -t 0 ]
@@ -302,7 +322,7 @@ call() {
 
     if [ -n "$dataopt" ]
     then
-        datafile=$TMPDIR/`mktemp $me.XXXXXX`
+        datafile=`mktemp -t $me.XXXXXX`
         echo "$data" >$datafile
         data="$datafileprefix$datafile"
     fi
@@ -310,11 +330,16 @@ call() {
     callcurl $mycurlopts $EASYCURLOPTS $opt $dataopt $data \
 	$xopt -H "$httpoverride" -H "$contenthdr" -H "$accepthdr" \
         $EASYCURLOPTS ${1+"$@"} $urlbase$resource
+    res=$?
 
-    rm -f $datfile
+    rm -f $datafile
+
+    return $?
 }
 
-#
+# Parse all command line arguments appropriately and either print shell
+# commands if requested, or proceed to invoke call in order to do the
+# the proper invokation of curl.
 
 takeiteasy() {
     while [ $# -ne 0 ]
@@ -347,6 +372,18 @@ takeiteasy() {
 			    ;;
 			R)
 			    cooked=0
+			    ;;
+			P)
+			    donotquotearg=1
+			    printselfcontained=1
+			    printshell=all
+			    printall=1
+			    ;;
+	    		E)
+			    test $# -gt 1 || usage 1
+			    donotquotearg=1
+			    shift
+			    EASYENDPOINT=$1
 			    ;;
 			q)
 			    test $# -gt 1 || usage 1
@@ -394,10 +431,9 @@ takeiteasy() {
 		printfile=$1
 		;;
 	    --print)
-		test $# -gt 1 || usage 1
 		shift
 		donotquotearg=1
-		while [ $# -gt 1 ]
+		while [ $# -gt 0 ]
 		do
 		    case "$1" in
 			-[^-]*)
@@ -424,7 +460,7 @@ takeiteasy() {
 		    esac
 		    shift
 		done
-		printshell=$1
+		printshell=${1-all}
 		for f in `echo $printshell | sed 's/,/ /g'`
 		do
 		    case "$f" in
@@ -442,7 +478,7 @@ takeiteasy() {
 			    printall=1
 			    ;;
 			*)
-			    >&2 echo $me: unknown --print argument: $f && exit 5
+			    usage 5
 			    ;;
 		    esac
 		done
@@ -535,16 +571,21 @@ takeiteasy() {
 
     if [ -n "$printshell" ]
     then
-    # Process the --print arguments in the order we have seen then
+    	# Process the --print arguments in the order we have seen then
 
 	if [ -n "$printselfcontained" ]
 	then
 	    allargs=${printall:+func}
 	else
-	    allargs=${printall:+env,func,config}
+	    if [ -n "$EASYENDPOINT" ]
+	    then
+		env=env,
+	    fi
+	    allargs=${printall:+${env}func,config}
 	fi
-	
-	for f in `echo $printshell,$allargs | sed 's/,/ /g'`
+
+	printargs=`echo $printshell | sed "s/all/$allargs/"`
+	for f in `echo $printargs | sed 's/,/ /g'`
 	do
 	    case "$f" in
 		env)
@@ -560,7 +601,7 @@ takeiteasy() {
 				exporteq="="
 				;;
 			esac
-			test -n "$EASYENDPOINT" && echo "$export EASYENDPOINT$exporteq`quote $EASYENDPOINT`;"
+			echo "$export EASYENDPOINT$exporteq`quote $EASYENDPOINT`;"
 		    fi
 		    ;;
 		func)

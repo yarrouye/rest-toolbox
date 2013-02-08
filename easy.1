@@ -16,7 +16,7 @@
 .Sh SYNOPSIS             \" Section Header - required - don't modify
 .Nm
 .Op Fl Fl help                  \" [--help]
-.Op Fl Fl print [ [ Fl s | Fl p Ar prefix ] Ar options
+.Op Fl P | Fl Fl print [ [ Fl s | Fl p Ar prefix ] Ar options
 .Op Fl Fl cmd Ar file
 .Op Fl Fl no-env
 .Op Fl Fl no-extras
@@ -25,7 +25,7 @@
 .Op Fl W , Fl Fl wet
 .Op Fl C , Fl Fl cooked
 .Op Fl R , Fl Fl raw
-.Op Fl Fl endpoint Ar endpoint
+.Op Fl E , Fl Fl endpoint Ar endpoint
 .Op Fl q , Fl Fl query [ Ar query ]
 .Op Fl O , Fl Fl override
 .Op Fl V
@@ -103,6 +103,9 @@ option is used,
 .Cm env
 is not included except if it is being explicitly listed.
 .El
+.It Fl P
+Same as
+.Fl Fl print Fl s all .
 .It Fl Fl cmd Ar file
 Print the exact command line that was used to invoke
 .Xr curl 1
@@ -151,7 +154,7 @@ Cooked responses are very easy for humans to process. If
 .Nm
 is not writing to a terminal then colors are not used unless the option
 is given twice.
-.It Fl Fl endpoint Ar endpoint
+.It Fl E , Fl Fl endpoint Ar endpoint
 Set the endpoint of the server or service to be called.
 .It Fl q , Fl Fl query [ Ar query ]
 Pass the given
