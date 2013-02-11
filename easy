@@ -244,7 +244,7 @@ call() {
 		case "$arg" in
 		    [^-]*=*|[^-]*)
 			case "$arg" in
-			    [^-]*=)
+			    [^-]*=*)
 				key=`echo $arg | sed -E 's/^([^:=]+):?=.*/\1/'`
 				val=`echo $arg | sed -E 's/^[^:=]+:?=(.*)/\1/'`
 				literal=`echo $arg | grep -Eq '/^[:=][^:=]'`
