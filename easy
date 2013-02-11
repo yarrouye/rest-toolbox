@@ -242,10 +242,15 @@ call() {
 	    do
 		assign='='
 		case "$arg" in
-		    [^-]*=*|[^-]*:)
+		    [^-]*=*|[^-]*)
 			case "$arg" in
-			    [^-]*:)
-				key=`echo $arg | sed 's/:$//'`
+			    [^-]*=)
+				key=`echo $arg | sed -E 's/^([^:=]+):?=.*/\1/'`
+				val=`echo $arg | sed -E 's/^[^:=]+:?=(.*)/\1/'`
+				literal=`echo $arg | grep -Eq '/^[:=][^:=]'`
+				;;
+			    *)
+				key="$arg"
 				val=
 				if [ "$format" = json ]
 				then
@@ -255,10 +260,6 @@ call() {
 				    assign=''
 				fi
 				;;
-			    *)
-				key=`echo $arg | sed -E 's/^([^:=]+):?=.*/\1/'`
-				val=`echo $arg | sed -E 's/^[^:=]+:?=(.*)/\1/'`
-				literal=`echo $arg | grep -Eq '/^[:=][^:=]'`
 			esac
 
 			if [ -z "$data" ]

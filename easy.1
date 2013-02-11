@@ -145,21 +145,27 @@ of the form
 .Ar key\fR=[\fPvalue\fR]\fP ,
 .Ar key\fR:=[\fPvalue\fR]\fP
 or
-.Ar key\fR:\fP
-are concatenated either into an
+.Ar key
+(where
+.Ar key
+cannot start with a hyphen) are concatenated either into an
 .Cm application/x-www-form-urlencoded
 string, or, if
 .Fl j
 or
 .Fl Fl json
 is present, into a JSON object.
-The \fB:\fP forms (\fB:=\fP and \fB:\fP) mean to use
+The \fB:=\fP form mean to use
 .Ar value
 literaly rather than encoding it (either in
 .Cm application/x-www-form-urlencoded
-form or as a JSON string). The \fB:\fP form means to not assign any
+form or as a JSON string).
+If only
+.Ar key
+is specified,
+then no
 .Ar value
-which in JSON is trnaslated as assigning the special
+is specified, which in JSON is translated as assigning the special
 value
 .Cm undefined .
 .It Fl W , Fl Fl wet

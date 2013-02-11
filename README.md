@@ -76,13 +76,13 @@ would fetch `/persons?count=5` and return the results. Note that `:=` tells
 easy(1) to not URL-encoded the values, which is its default behavior (just
 like it string quotes values in JSON).
 
-The special form `:` means to pass the data without a value. Doing
+One can omit a value (rather than assigning an empty value). Doing:
 
     $ easy -B GET /persons start=3 count
 
 will result in fetching `/persons?start=3&count` while doing
 
-    $ easy -jB POST /persons name=Yves zipcode:=98004 age:
+    $ easy -jB POST /persons name=Yves zipcode:=98004 age
 
 would bake and send
 
