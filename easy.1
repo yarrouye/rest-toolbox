@@ -131,19 +131,26 @@ Bake arguments into the proper data format for submission. Any
 consecutive arguments
 .Ar arg
 of the form
-.Ar key\fR=\fPvalue
+.Ar key\fR=[\fPvalue\fR]\fP ,
+.Ar key\fR:=[\fPvalue\fR]\fP
 or
-.Ar key\fR:=\fPvalue
+.Ar key\fR:\fP
 are concatenated either into an
 .Cm application/x-www-form-urlencoded
 string, or, if
 .Fl j
 or
 .Fl Fl json
-is present, into a JSON object. In that case, a 
+is present, into a JSON object.
+The \fB:\fP forms (\fB:=\fP and \fB:\fP) mean to use
 .Ar value
-is quoted as a string unless it is assigned with := in which case it is
-used literally.
+literaly rather than encoding it (either in
+.Cm application/x-www-form-urlencoded
+form or as a JSON string). The \fB:\fP form means to not assign any
+.Ar value
+which in JSON is trnaslated as assigning the special
+value
+.Cm undefined .
 .It Fl W , Fl Fl wet
 Do not bake arguments.
 .It Fl C , Fl Fl cooked

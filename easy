@@ -243,11 +243,27 @@ call() {
 	    fi
 	    for arg
 	    do
+		assign='='
 		case "$arg" in
-		    [^-]*=*)
-			key=`echo $arg | sed -E 's/^([^:=]+):?=.*/\1/'`
-			val=`echo $arg | sed -E 's/^[^:=]+:?=(.*)/\1/'`
-			literal=`echo $arg | grep -Eq '/^[:=][^:=]'`
+		    [^-]*=*|[^-]*:)
+			case "$arg" in
+			    [^-]*:)
+				key=`echo $arg | sed 's/:$//'`
+				val=
+				if [ "$format" = json ]
+				then
+				    literal=undefined
+				else
+				    literal=
+				    assign=''
+				fi
+				;;
+			    *)
+				key=`echo $arg | sed -E 's/^([^:=]+):?=.*/\1/'`
+				val=`echo $arg | sed -E 's/^[^:=]+:?=(.*)/\1/'`
+				literal=`echo $arg | grep -Eq '/^[:=][^:=]'`
+			esac
+
 			if [ -z "$data" ]
 			then
 			    data="$datastart"
@@ -259,12 +275,18 @@ call() {
 			    data="$data"'"'"`quotestr $key`"'"'":"
 			    if [ -n "$literal" ]
 			    then
-				data="$data`quote $val`"
+				data="$data`quote $literal`"
 			    else
 				data="$data"'"'"`quotestr $val`"'"'
 			    fi
 			else
-			    data="$data`urlencode $key`=`urlencode $val`"
+			    data="$data`urlencode $key`$assign"
+			    if [ -n "$literal" ]
+			    then
+				data="$data$val"
+			    else
+				data="$data`urlencode $val`"
+			    fi
 			fi
 			shift
 			;;
@@ -292,7 +314,7 @@ call() {
 		    ;;
 	    esac
 	fi
-	
+
 	if [ -n "$useeditor" ]
 	then
 	    if [ -n "$nodatagiven" -o -z "$data" ]
@@ -345,7 +367,7 @@ call() {
 
     callcurl $mycurlopts $EASYCURLOPTS $opt $dataopt $data \
 	$xopt -H "$httpoverride" -H "$contenthdr" -H "$accepthdr" \
-        $EASYCURLOPTS ${1+"$@"} $urlbase$resource
+        $EASYCURLOPTS ${1+"$@"} $urlbase$resource$query
     res=$?
 
     rm -f $datafile
@@ -717,7 +739,7 @@ EOF
 	    exit 2
 	fi
 	
-	call $method $resourcepath$query ${1+"$@"}
+	call $method $resourcepath ${1+"$@"}
     else
 	case "$method" in
 	    -*)
