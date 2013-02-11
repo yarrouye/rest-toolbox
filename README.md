@@ -261,7 +261,9 @@ Prettify Content
 
 pretty(1) formats (pretty prints) and colorizes content. The pretty.commands(5)
 file maps MIME types to formatting and colorization commands appropriate for
-a variety of MIME types.
+a variety of MIME types. If a command in the file is not found, pretty(1)
+will use cat(1) instead ("So much for prettification!" you say; but at least
+contents will not seemingly disappear).
 
 In order for prettification to happen, easy(1) needs to be able to find
 pygmentize(1) (from the pygments project at http://pygments.org) and json(1)

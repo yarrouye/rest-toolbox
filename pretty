@@ -1,0 +1,133 @@
+#! /bin/sh
+
+# Prettifies and colorizes content according to its MIME type
+#
+# Yves Arrouye
+
+: ${TMPDIR:=/tmp}
+me=`basename $0`
+
+# Where to find the commands. ABSOLUTELY NO ATTEMPT is made at securing
+# the commands!
+
+: ${PRETTYCOMMANDS:=/usr/local/share/pretty.commands}
+
+usage() {
+    if [ "$1" -eq 0 ]
+    then
+        u=U
+    else
+        u=u
+        exec >&2
+    fi
+    echo $u"sage: $me [--help] [-C] [-t type ] [ file ... ]"
+    if [ "$1" -eq 0 ]
+    then
+        cat <<EOF
+
+       --help        Show this message
+       -C            Always colorize
+       -t type       Use given MIME type 
+EOF
+    fi
+
+    exit $1
+}
+
+checkforcmd() {
+    cmd=$1
+    for d in `echo $PATH | sed 's/:/ /g'`
+    do
+	if [ -x "$d/$cmd" ]
+	then
+>&2 echo found "$@"
+	    echo "$@"
+	    return 0
+	fi
+    done
+    echo cat
+    return 1
+}
+
+prettify() {
+    input="$1"
+    if [ "$input" = "-" ]
+    then
+	input=$TMPDIR/$me.$$
+	cat >$input
+	trap "rm -f $input" 0 1 2 3 4 5 6 7 8 15
+    fi
+    if [ ${giventype:--} = "-" ]
+    then
+	type=`mime -gEC $input`
+    else
+	type=$giventype
+    fi
+    esctype=`echo $type | sed 's,/,\\\\/,g'`
+    entries=`sed 's/$/ #END/' $PRETTYCOMMANDS | sed -n "/^$esctype[ 	]/,/^[ 	]/p"`
+    pretty=`echo $entries | sed -n -e 's/^.*[         ][      ]*pretty=\([^#]*\) #END.*/\1/p'`
+    if [ -n "$pretty" ]
+    then
+	pretty=`checkforcmd $pretty`
+	prettypipe="| $pretty"
+    fi
+    if [ -t 1 -o -n "$alwayscolor" ]
+    then
+        color=`echo $entries | sed -n -e 's/^.*[         ][      ]*color=\([^#]*\)[ 	]* #END.*/\1/p'`
+	if [ -n "$color" ]
+	then
+	    color=`checkforcmd $color`
+	    colorpipe="| $color"
+	fi
+    fi
+
+    : ${pretty:=cat}
+    : ${color:=cat}
+
+    sh -c "cat $input $prettypipe $colorpipe"
+
+    if [ "$1" != "$input" ]
+    then 
+	rm -f $input
+    fi
+}
+
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	-[^-]*)
+	    for l in `echo $1 | sed -e 's/^-//' -e 's/\(.\)/\1 /g'`
+	    do
+		case "$l" in
+		    C)
+			alwayscolor=yes
+			;;
+		    t)
+			test $# -gt 1 || usage 1
+			shift
+			giventype=$1
+			;;
+		    *)
+			usage 1
+			;;
+		esac
+	    done
+	    ;;
+
+	--help)
+	    usage 0
+	    ;;
+
+	*)
+	    prettify "$1"
+	    prettified=yes
+	    ;;
+    esac
+    shift
+done
+
+if [ -z "$prettified" ]
+then
+    prettify -
+fi
+
