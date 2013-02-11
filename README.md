@@ -12,7 +12,7 @@ services. It is great tool to play with REST services. Examples in this
 document put the emphasis on those HTTP methods that are used with such
 services.
 
-*Simple Invokation*
+*Simple Invocation*
 
 One can make a call to a service using a simple invokation such as:
 
@@ -153,10 +153,16 @@ Simply ask easy(1) to override POST:
 
     $ easy -O PUT /resources/1234 'key=something'
 
+*Easy as REST?*
+
+When invoked as `rest`, easy(1) behaves as if the `-jBC` options had been
+passed to it. This provides a great experience for testing JSON-based REST
+services.
+
 *Shortcut Trickery*
 
-As indicated above, easy(1) can generate functions for you to allow for
-very simple invokations:
+As indicated above, easy(1) (or rest(1) of course) can generate functions
+for you to allow for very simple invocations:
 
     $ easy --print all
     export EASYENDPOINT=http://127.0.0.1/service/v1;
@@ -181,7 +187,7 @@ very simple invokations:
     $
 
 In order to have these functions available to you, simply evaluate the
-output of `easy --print`:
+output of `easy --print` or `easy -P`:
 
     $ eval `easy --print all`
     $ env | grep EASYENDPOINT
