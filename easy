@@ -181,15 +181,8 @@ call() {
     datafile=
 
     takesdata=
+    dataopt=--data-ascii	# We do our own encoding
 
-    case "$content" in
-	json|asis)
-	    dataopt=--data-binary
-	    ;;
-	form)
-	    dataopt=--data-urlencode
-	    ;;
-    esac	
     datafileprefix=@
 
     case "$method" in
