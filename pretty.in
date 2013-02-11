@@ -34,6 +34,22 @@ EOF
     exit $1
 }
 
+
+checkforcmd() {
+    cmd=$1
+    for d in `echo $PATH | sed 's/:/ /g'`
+    do
+	if [ -x "$d/$cmd" ]
+	then
+>&2 echo found "$@"
+	    echo "$@"
+	    return 0
+	fi
+    done
+    echo cat
+    return 1
+}
+
 prettify() {
     input="$1"
     if [ "$input" = "-" ]
@@ -53,6 +69,7 @@ prettify() {
     pretty=`echo $entries | sed -n -e 's/^.*[         ][      ]*pretty=\([^#]*\) #END.*/\1/p'`
     if [ -n "$pretty" ]
     then
+	pretty=`checkforcmd $pretty`
 	prettypipe="| $pretty"
     fi
     if [ -t 1 -o -n "$alwayscolor" ]
@@ -60,6 +77,7 @@ prettify() {
         color=`echo $entries | sed -n -e 's/^.*[         ][      ]*color=\([^#]*\)[ 	]* #END.*/\1/p'`
 	if [ -n "$color" ]
 	then
+	    color=`checkforcmd $color`
 	    colorpipe="| $color"
 	fi
     fi
