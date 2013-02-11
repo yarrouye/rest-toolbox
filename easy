@@ -362,7 +362,7 @@ call() {
         data="$datafileprefix$datafile"
     fi
 
-    callcurl $mycurlopts $EASYCURLOPTS $opt $dataopt $data \
+    callcurl $mycurlopts $opt $dataopt $data \
 	$xopt -H "$httpoverride" -H "$contenthdr" -H "$accepthdr" \
         $EASYCURLOPTS ${1+"$@"} $urlbase$resource$query
     res=$?
@@ -664,7 +664,7 @@ takeiteasy() {
 			if [ -n "$printselfcontained" ]
 			then
 			    test -n "$EASYENDPOINT" && endpointarg=" --endpoint `quote $quoteforsh $EASYENDPOINT`"
-			    test -n "$EASYCURLOPTS" && easycurloptsarg=" `quote $quoteforsh $EASYCURLOPTS`"
+			    test -n "$EASYCURLOPTS" && easycurloptsargs=" `quote $quoteforsh $EASYCURLOPTS`"
 			fi
 			if [ -n "$printconfig" ]
 			then
@@ -674,10 +674,6 @@ takeiteasy() {
     			    args=`quote $quoteforsh ${1+"$@"}`
 			    if [ -n "$printselfcontained" ]
 			    then
-				if [ -n "$easycurloptsarg" ]
-				then
-				    easyargs="$easycurloptsarg"
-				fi
 		     		easyargs=" --no-env$easyargs$endpointarg"
 			    fi
 			fi
@@ -694,7 +690,7 @@ takeiteasy() {
 			    for method in $print_methods
 			    do
 				cat <<EOF
-alias $printprefix$method '$me$easyargs$quotedargs $method$aliasargs$args';
+alias $printprefix$method '$me$easyargs$quotedargs $method$aliasargs$easycurloptsargs$args';
 EOF
 			    done
 			else
@@ -702,7 +698,7 @@ EOF
 			    do
 				cat <<EOF
 $printprefix$method () {
-    $me$easyargs$quotedargs $method "\$@"$args
+    $me$easyargs$quotedargs $method "\$@"$args$easycurloptsargs
 };
 EOF
 			    done
@@ -768,7 +764,7 @@ for arg
 do
     case "$arg" in
 	--no-env)
-	    noenv=yes
+	    noenv=1
 	    ;;
         -*)
 	    ;;
@@ -781,6 +777,7 @@ done
 if [ -n "$noenv" ]
 then
     unset EASYOPTS
+    unset EASYCURLOPTS
 fi
 
 takeiteasy $EASYOPTS ${1+"$@"}
