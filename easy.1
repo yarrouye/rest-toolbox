@@ -196,7 +196,14 @@ appended to the service
 .Ar endpoint
 in order to make up the full resource URI.
 .It Ar data
-Data to be posted to the server or service.
+Data to be sent to the server or service. The method used to send the
+data depends on the HTTP method. For GET, data are passed
+on the command line as part of query parameters unless the
+.Fl q , Fl Fl query
+option was used to specify a query,
+in which case data are passed with the body of the
+request. Also see
+.Fl B , Fl Fl baked .
 .It Ar curlopt ...
 Any
 .Ar curlopt

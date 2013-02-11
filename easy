@@ -176,22 +176,28 @@ call() {
 
     urlbase=`echo $EASYENDPOINT | sed 's,/$,,'`
 
+    format=$content
+
     datafile=
+
+    takesdata=
+
+    case "$content" in
+	json|asis)
+	    dataopt=--data-binary
+	    ;;
+	form)
+	    dataopt=--data-urlencode
+	    ;;
+    esac	
+    datafileprefix=@
+
     case "$method" in
 	TRACE)
 	    xopt="-X $method"
 	    takesdata=yes
 	    ;;
  	POST)
-	    case "$content" in
-	        json|asis)
-		    dataopt=--data-binary
-		    ;;
-		form)
-		    dataopt=--data-urlencode
-		    ;;
-	    esac	
-	    datafileprefix=@
 	    takesdata=yes
 	    ;;
  	PUT)
@@ -200,12 +206,21 @@ call() {
 	    takesdata=yes
 	    ;;
 	GET)
-	    opt=-G
+	    if [ -z "$query" ]
+	    then
+		format=raw
+		opt=-G
+	    else
+		xopt="-X $method"
+	    fi
 	    takesdata=yes
 	    ;;
 	HEAD)
 	    opt=-I
 	    raw=1
+	    ;;
+	*)
+	    xopt="-X $method"
 	    ;;
     esac
 
@@ -215,7 +230,8 @@ call() {
 	if [ "0$baked" -ne 0 ]
 	then
 	    data=""
-	    if [ "$content" = json ]
+	    queryargs=""
+	    if [ "$format" = json ]
 	    then
 		datastart="{"
 		dataend="}"
@@ -238,7 +254,7 @@ call() {
 			else
 			    data="$data$datasep"
 			fi
-	    	        if [ "$content" = json ]
+	    	        if [ "$format" = json ]
 			then
 			    data="$data"'"'"`quotestr $key`"'"'":"
 			    if [ -n "$literal" ]
@@ -262,21 +278,21 @@ call() {
 		data="$data$dataend"
 	    fi
 	else
-	case "$1" in
-	    -)
-		data="@-"
-		shift
-		;;
-	    -*)
-		nodatagiven=1
-		;;
-	    *)
-		data="$1"
-		shift
-		;;
-	esac
+	    case "$1" in
+		-)
+		    data="@-"
+		    shift
+		    ;;
+		-*)
+		    nodatagiven=1
+		    ;;
+		*)
+		    data="$1"
+		    shift
+		    ;;
+	    esac
 	fi
-
+	
 	if [ -n "$useeditor" ]
 	then
 	    if [ -n "$nodatagiven" -o -z "$data" ]
@@ -684,9 +700,9 @@ EOF
 	    me=$method
 	fi
 	
-    # See if the resource path is actually a URI. If so, extract the
-    # endpoint ans resource path from there and pass the computed resource
-    # path for the call.
+        # See if the resource path is actually a URI. If so, extract the
+        # endpoint ans resource path from there and pass the computed resource
+        # path for the call.
 
 	case "`echo $1 | tr '[A-Z]' '[a-z]'`" in
 	    http://*|https://*)
