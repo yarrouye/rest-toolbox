@@ -155,9 +155,11 @@ Simply ask easy(1) to override POST:
 
 *Easy as REST?*
 
-When invoked as `rest`, easy(1) behaves as if the `-jBC` options had been
-passed to it. This provides a great experience for testing JSON-based REST
-services.
+When invoked as `rest`, easy(1) behaves as if the `-jB` options had been
+passed to it. In addition, if standard output is a TTY, it acts as if
+`-C` had been added. This provides a great experience for interacting with
+JSON-based REST services. The rest(1) command provides other options to
+negate those defaults (e.g. `-f` to use form data instead of JSON).
 
 *Shortcut Trickery*
 

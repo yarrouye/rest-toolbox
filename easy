@@ -19,7 +19,16 @@ case "$me" in
     rest)
 	default_content=json
 	default_baked=1
-	default_cooked=1
+	if [ -t 1 ]
+	then
+	    default_cooked=1
+	else
+	    default_cooked=0
+	fi
+	;;
+    *)
+	default_baked=0
+	default_cooked=0
 	;;
 esac
 
@@ -116,7 +125,7 @@ quote() {
 # invokation if needed.
 
 callcurl() {
-    if [ "0$cooked" -gt 0 ]
+    if [ $cooked -gt 0 ]
     then
 	hdrfile=`mktemp -t $me.XXXXXX`
 	contentfile=`mktemp -t $me.XXXXXX`

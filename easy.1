@@ -54,8 +54,17 @@ When invoked as
 .Cm rest ,
 .Nm
 behaves as if the options
-.Fl jBC
-were passed to it.
+.Fl jB
+were passed to it. In addition, if standard output is a TTY, it behaves
+as if
+.Fl C
+was used too. This makes it very easy to use
+.Xr rest 1
+for interacting with REST services.
+The command provides other options to
+negate those defaults (e.g.
+.Fl f
+to use form data instead of JSON).
 .Pp
 The following options are available:
 .Bl -tag -width -indent  \" Differs from above in tag removed 
