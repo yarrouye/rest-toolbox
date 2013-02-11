@@ -97,7 +97,7 @@ To prevent baking, one can use `-W` or `--wet`.
 
 While by default easy(1) does very little to change one's typical exchange
 with an HTTP server, it can cook the server's responses if passed the
-`-C` option.
+`-C` or `-c` option.
 
 Cooking the response has a big impact on what one sees. The response is
 cooked by easy(1) according to the following recipe:
@@ -108,15 +108,17 @@ cooked by easy(1) according to the following recipe:
 
 easy(1) calls pretty(1) for prettification. See Prettify Content below.
 
-Cooked mode makes for a very pretty interaction. For quick testing of REST
-services, `-jC` is a must. Add baking if you need the convenience, too!
-One can request no cooking by using the `-R` or `--raw` option.
+The `-C` or `--cooked` option always cooks the results. It will not produce
+colors if writing to a terminal unless the option is used twice. Doing so
+is useful if one wants to page with `less -R` for example. The `-c`
+option tentatively cooks results, i.e. only cooks them if writing to a
+terminal.
 
-If easy(1) is not outputing to a terminal, cooking will skip colorization.
-This is useful so you can process the cooked output.
-You can however overcook it by spcify `-C` or `--cooked` more than once,
-and this will make colorization stick. This is a good option if you want
-to page the output using `less -R` or an equivalent command.
+Cooked mode makes for a very pretty interaction. For quick testing of REST
+services, `-jc` is a must, and adding baking is probably as indispensable
+too. Or simply invoke easy(1) as rest(1) as described below!
+
+One can request no cooking by using the `-R` or `--raw` option.
 
 *Posting, Putting, Patching: When Data Are Needed*
 
@@ -155,9 +157,9 @@ Simply ask easy(1) to override POST:
 
 *Easy as REST?*
 
-When invoked as `rest`, easy(1) behaves as if the `-jB` options had been
-passed to it. In addition, if standard output is a TTY, it acts as if
-`-C` had been added. This provides a great experience for interacting with
+When invoked as `rest`, easy(1) behaves as if the `-jBc` options has been
+passed to it. 
+This provides a great experience for interacting with
 JSON-based REST services. The rest(1) command provides other options to
 negate those defaults (e.g. `-f` to use form data instead of JSON).
 

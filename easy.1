@@ -23,7 +23,7 @@
 .Op Fl j , Fl Fl json | Fl A , Fl Fl as-is
 .Op Fl B , Fl Fl baked
 .Op Fl W , Fl Fl wet
-.Op Fl C , Fl Fl cooked
+.Op Fl C , Fl Fl cooked | Fl c
 .Op Fl R , Fl Fl raw
 .Op Fl E , Fl Fl endpoint Ar endpoint
 .Op Fl q , Fl Fl query [ Ar query ]
@@ -54,11 +54,9 @@ When invoked as
 .Cm rest ,
 .Nm
 behaves as if the options
-.Fl jB
-were passed to it. In addition, if standard output is a TTY, it behaves
-as if
-.Fl C
-was used too. This makes it very easy to use
+.Fl jBc
+were passed to it.
+This makes it very easy to use
 .Xr rest 1
 for interacting with REST services.
 The command provides other options to
@@ -81,7 +79,11 @@ Define self-sustaining functions or aliases, i.e. include options for the
 in the definitions. This makes the function or alias unaffected by a change
 in the value of the
 .Ev EASYENDPOINT
-environment variable.
+environment variable. Also bake in the value of
+.Ev EASYOPTS
+unless
+.Fl Fl no-env
+is used.
 .It Fl p Ar prefix
 Prefix function and alias names with
 .Ar prefix .
@@ -170,6 +172,8 @@ Cooked responses are very easy for humans to process. If
 .Nm
 is not writing to a terminal then colors are not used unless the option
 is given twice.
+.It Fl c
+Tentatively cook the response, i.e. only cooks it if writing to a terminal.
 .It Fl E , Fl Fl endpoint Ar endpoint
 Set the endpoint of the server or service to be called.
 .It Fl q , Fl Fl query [ Ar query ]

@@ -19,12 +19,7 @@ case "$me" in
     rest)
 	default_content=json
 	default_baked=1
-	if [ -t 1 ]
-	then
-	    default_cooked=1
-	else
-	    default_cooked=0
-	fi
+	default_cooked=-1
 	;;
     *)
 	default_baked=0
@@ -407,6 +402,9 @@ takeiteasy() {
 			W)
 			    baked=0
 			    ;;
+			c)
+			    default_cooked=-1
+			    ;;
 			C)
 			    cooked=`expr 0$cooked + 1`
 			    ;;
@@ -597,6 +595,15 @@ takeiteasy() {
 
     : ${content:=$default_content}
     : ${baked:=$default_baked}
+    if [ $default_cooked -lt 0 ]
+    then
+	if [ -t 1 ]
+	then
+	    default_cooked=1
+	else
+	    default_cooked=0
+	fi
+    fi
     : ${cooked:=$default_cooked}
 
     if [ -n "$noenv" ]
