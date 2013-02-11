@@ -82,7 +82,7 @@ The special form `:` means to pass the data without a value. Doing
 
 will result in fetching `/persons?start=3&count` while doing
 
-    $ easy -B POST /persons name=Yves zipcode:=98004 age:
+    $ easy -jB POST /persons name=Yves zipcode:=98004 age:
 
 would bake and send
 
