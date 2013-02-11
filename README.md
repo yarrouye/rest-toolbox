@@ -65,6 +65,34 @@ will bake the following JSON object (prettifying notwithstanding):
 The `:=` assignment tells easy(1) to use the value literally rather than
 to quote it as a string.
 
+One can also use arguments when using `GET`. The arguments will then be passed
+in the query portion of the request, unles `-q` or `--query` was used, in
+which case they will be sent as part of the body (which may not be supported
+by the destination):
+
+    $ easy -B GET /persons count=5
+
+would fetch `/persons?count=5` and return the results. Note that `:=` tells
+easy(1) to not URL-encoded the values, which is its default behavior (just
+like it string quotes values in JSON).
+
+The special form `:` means to pass the data without a value. Doing
+
+    $ easy -B GET /persons start=3 count
+
+will result in fetching `/persons?start=3&count` while doing
+
+    $ easy -B POST /persons name=Yves zipcode:=98004 age:
+
+would bake and send
+
+    {
+        "name": "Yves",
+        "zipcode": 98004,
+        "age": undefined
+    }
+
+
 To prevent baking, one can use `-W` or `--wet`.
 
 While by default easy(1) does very little to change one's typical exchange
