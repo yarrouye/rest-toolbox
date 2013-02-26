@@ -17,7 +17,7 @@
 .Nm
 .Op Fl Fl help                  \" [--help]
 .Op Fl Fl print [ [ Fl s | Fl p Ar prefix ] Ar options | Fl P
-.Op Fl Fl cmd Ar file
+.Op Fl Fl cmd Ar file | Fl Fl script Ar file
 .Op Fl Fl no-env
 .Op Fl Fl no-extras
 .Op Fl j , Fl Fl json | Fl A , Fl Fl as-is
@@ -121,6 +121,14 @@ Same as
 Print the exact command line that was used to invoke
 .Xr curl 1
 after it has been called.
+.It Fl Fl script Ar file
+Generate a script equivalent to the command invocation. The invocation is
+the same as with
+.Fl Fl cmd .
+In addition, if data are written to an input file for
+.Xr curl 1
+to process, the command line is preceded with commands to generate that
+input file.
 .It Fl Fl no-env
 Ignore environment variables.
 .It Fl Fl no-extras

@@ -41,14 +41,14 @@ usage() {
         u=u
         exec >&2
     fi
-    echo $u"sage: $me [--help] [-P | --print [-s] [-p prefix] [no]env,[no]func,all] [--cmd file] [--no-env] [--no-extras] [-j, --json | -f, --form | -a, --as-is ] [-B, --baked] [-W, --wet] [-C, --cooked] [-R, --raw] [-E, --endpoint endpoint] [-q, --query query] [-O, --override] [-V] method resource [data] [curlopt ...]"
+    echo $u"sage: $me [--help] [-P | --print [-s] [-p prefix] [no]env,[no]func,all] [--cmd file | --script file] [--no-env] [--no-extras] [-j, --json | -f, --form | -a, --as-is ] [-B, --baked] [-W, --wet] [-C, --cooked] [-R, --raw] [-E, --endpoint endpoint] [-q, --query query] [-O, --override] [-V] method resource [data] [curlopt ...]"
     if [ "$1" -eq 0 ]
     then
         cat <<EOF
 
        --help                   Show this message
        -P | --print [opts] what Print commands to set env or define HTTP functions
-       --cmd file               Print the curl(1) command to file
+       --cmd file | --script file  Print the curl(1) command to file or generate a script
        --no-env                 Do not use environment variables
        --no-extras              Do not add extra behavior not explicitly asked for
        -j, --json               Send and receive JSON data
@@ -122,8 +122,8 @@ quote() {
 callcurl() {
     if [ $cooked -gt 0 ]
     then
-	hdrfile=`mktemp -t $me.XXXXXX`
-	contentfile=`mktemp -t $me.XXXXXX`
+	hdrfile=`mktemp -t $me`
+	contentfile=`mktemp -t $me`
 	trap "rm -f $hdrfile $contentfile" 0 1 2 3 4 5 6 7 8 15
 
 	curl ${1+"$@"} -D $hdrfile -o $contentfile
@@ -156,9 +156,63 @@ callcurl() {
     then
 	if [ "$printfile" != "-" ]
 	then
-	    exec >$printfile || exit "$me: could not write to $printfile"
+	    if ! exec >$printfile
+	    then
+		exit "$me: could not write to $printfile"
+	    fi
 	fi
-	quote curl ${1+"$@"}
+	if [ -n "$printscript" ]
+	then
+	    for s in /bin/sh /bin/ksh $SHELL
+	    do
+	 	if [ -x $s ]
+		then
+		    shell=$s
+		    break
+		fi
+	    done
+	    if [ -z "$shell" ]
+	    then
+		shell=/bin/sh		# Even if it does not exist
+	    fi
+	    # Generate a script that works equally well on the command
+	    # line as in a file.
+	    echo "#! $shell"
+	    if [ -z "$printminimalscript" ]
+	    then
+	        which=`which which`
+	        cat <<EOF
+pretty() {
+    _pretty=\`$which pretty 2>/dev/null\`
+    if test -n "\$_pretty"; then
+	\$_pretty "\$@"
+    else
+	if test "\$1" = -C; then shift; fi
+        cat "\$@"
+    fi
+}
+EOF
+	    fi
+	    cat <<EOF
+trap 'rm -f $datafile' 0 1 2 3 4 5 6 7 8 15
+EOF
+	    if [ -n "$datafile" ]
+	    then
+	        echo "cat >$datafile <<EOF"
+	        cat $datafile
+	        echo "EOF"
+	    fi
+	fi
+	if [ -z "$printminimalscript" -a -n "$cooked" ]
+	then
+	    endcurlcmd="\\"
+	fi
+	quote curl ${1+"$@"} $endcurlcmd
+	if [ -z "$printminimalscript" -a -n "$cooked" ]
+	then
+	     echo "    | pretty $prettyarg"
+	fi
+	echo "rm -f $datafile"
     fi
 
     return $res
@@ -325,7 +379,7 @@ call() {
                            || which vim || which vi) | tail -n 1`
 		if [ -n "$editor" ]
 		then
-		    tmpfile=`mktemp -t $me.XXXXXX`
+		    tmpfile=`mktemp -t $me`
 		    trap "rm -f $tmpfile" 0 1 2 3 4 5 6 7 8 15
 		    if [ -n "$nodata" ]
 		    then
@@ -358,7 +412,7 @@ call() {
 
     if [ -n "$dataopt" ]
     then
-        datafile=`mktemp -t $me.XXXXXX`
+        datafile=`mktemp -t $me`
         echo "$data" >$datafile
         data="$datafileprefix$datafile"
     fi
@@ -463,9 +517,14 @@ takeiteasy() {
 	    --help)
 		usage 0
 		;;
-	    --cmd)
+	    --cmd|--script)
 		test $# -gt 1 || usage 1
 		firstquotearg="$1"
+		if [ "$1" = "--script" ]
+		then
+		    printscript=1
+		    printminimalscript=1
+		fi
 		shift
 		printfile=$1
 		;;

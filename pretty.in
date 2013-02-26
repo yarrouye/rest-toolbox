@@ -41,7 +41,6 @@ checkforcmd() {
     do
 	if [ -x "$d/$cmd" ]
 	then
->&2 echo found "$@"
 	    echo "$@"
 	    return 0
 	fi
