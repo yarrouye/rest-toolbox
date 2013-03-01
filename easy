@@ -301,14 +301,14 @@ call() {
 			    [^-]*=*)
 				key=`echo $arg | sed -E 's/^([^:=]+):?=.*/\1/'`
 				val=`echo $arg | sed -E 's/^[^:=]+:?=(.*)/\1/'`
-				literal=`echo $arg | grep -Eq '/^[:=][^:=]'`
+				literal=`echo $arg | sed -nE 's/^[^:=]+:=(.*)/\1/p'`
 				;;
 			    *)
 				key="$arg"
 				val=
 				if [ "$format" = json ]
 				then
-				    literal=undefined
+				    literal=null
 				else
 				    literal=
 				    assign=''
