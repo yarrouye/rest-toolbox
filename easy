@@ -296,9 +296,9 @@ call() {
 	    do
 		assign='='
 		case "$arg" in
-		    [^-]*=*|[^-]*)
+		    [^-]*)
 			case "$arg" in
-			    [^-]*=*)
+			    *=*)
 				key=`echo $arg | sed -E 's/^([^:=]+):?=.*/\1/'`
 				val=`echo $arg | sed -E 's/^[^:=]+:?=(.*)/\1/'`
 				literal=`echo $arg | sed -nE 's/^[^:=]+:=(.*)/\1/p'`
@@ -327,7 +327,7 @@ call() {
 			    data="$data"'"'"`quotestr $key`"'"'":"
 			    if [ -n "$literal" ]
 			    then
-				data="$data`quote $literal`"
+				data="$data$literal"
 			    else
 				data="$data"'"'"`quotestr $val`"'"'
 			    fi
