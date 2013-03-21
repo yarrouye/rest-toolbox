@@ -68,7 +68,7 @@ to quote it as a string.
 One can also use arguments when using `GET`. The arguments will then be passed
 in the query portion of the request, unles `-q` or `--query` was used, in
 which case they will be sent as part of the body (which may not be supported
-by the destination):
+by the destination).
 
     $ easy -B GET /persons count=5
 
@@ -89,11 +89,15 @@ would bake and send
     {
         "name": "Yves",
         "zipcode": 98004,
-        "age": undefined
+        "age": null
     }
 
 
 To prevent baking, one can use `-W` or `--wet`.
+
+If `==` is used for an assignment, easy(1) adds that assignment to the query
+part of the URL regardless of the method used. If `-q` or `--query` is used the
+assignment is appended to that query.
 
 While by default easy(1) does very little to change one's typical exchange
 with an HTTP server, it can cook the server's responses if passed the
