@@ -294,14 +294,16 @@ call() {
 	    fi
 	    for arg
 	    do
+		forq=
 		assign='='
 		case "$arg" in
 		    [^-]*)
 			case "$arg" in
 			    *=*)
-				key=`echo $arg | sed -E 's/^([^:=]+):?=.*/\1/'`
-				val=`echo $arg | sed -E 's/^[^:=]+:?=(.*)/\1/'`
+				key=`echo $arg | sed -E 's/^([^:=]+)[:=]?=.*/\1/'`
+				val=`echo $arg | sed -E 's/^[^:=]+[:=]?=(.*)/\1/'`
 				literal=`echo $arg | sed -nE 's/^[^:=]+:=(.*)/\1/p'`
+				forq=`echo $arg | sed -nE 's/^[^:=]+==.*/yes/p'`
 				;;
 			    *)
 				key="$arg"
@@ -316,28 +318,39 @@ call() {
 				;;
 			esac
 
-			if [ -z "$data" ]
+			if [ -n "$forq" ]
 			then
-			    data="$datastart"
-			else
-			    data="$data$datasep"
-			fi
-	    	        if [ "$format" = json ]
-			then
-			    data="$data"'"'"`quotestr $key`"'"'":"
-			    if [ -n "$literal" ]
+			    if [ -z "$query" ]
 			    then
-				data="$data$literal"
+				query="?"
 			    else
-				data="$data"'"'"`quotestr $val`"'"'
+				query="$query&"
 			    fi
+			    query="$query`urlencode $key`=`urlencode $val`"
 			else
-			    data="$data`urlencode $key`$assign"
-			    if [ -n "$literal" ]
+			    if [ -z "$data" ]
 			    then
-				data="$data$val"
+			        data="$datastart"
 			    else
-				data="$data`urlencode $val`"
+			        data="$data$datasep"
+			    fi
+	    	            if [ "$format" = json ]
+			    then
+			        data="$data"'"'"`quotestr $key`"'"'":"
+			        if [ -n "$literal" ]
+			        then
+				    data="$data$literal"
+			        else
+				    data="$data"'"'"`quotestr $val`"'"'
+			        fi
+			    else
+			        data="$data`urlencode $key`$assign"
+			        if [ -n "$literal" ]
+			        then
+				    data="$data$val"
+			        else
+				    data="$data`urlencode $val`"
+			        fi
 			    fi
 			fi
 			shift

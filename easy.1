@@ -163,7 +163,8 @@ string, or, if
 or
 .Fl Fl json
 is present, into a JSON object.
-The \fB:=\fP form mean to use
+.Pp
+The \fB:=\fP form means to use
 .Ar value
 literaly rather than encoding it (either in
 .Cm application/x-www-form-urlencoded
@@ -175,6 +176,14 @@ then no
 .Ar value
 is specified, which in JSON is translated as assigning the value
 .Cm null .
+.Pp
+Arguments of the form
+.Ar key\fR==[\fPvalue\fR]\fP
+are added to the query part of the URL regardless of
+the method. If no
+.Ar value
+is specified, no assignment is made. See also
+.Fl q .
 .It Fl W , Fl Fl wet
 Do not bake arguments.
 .It Fl C , Fl Fl cooked
