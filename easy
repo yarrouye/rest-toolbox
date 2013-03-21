@@ -630,7 +630,7 @@ takeiteasy() {
 		if [ -z "$method" ]
 		then
 		    method=$1
-		    if [ -n "$printshellcmd" ]
+		    if [ -z "$noprintshellcmd" ]
 		    then
 			shift
 			break
