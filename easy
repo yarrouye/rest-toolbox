@@ -225,8 +225,11 @@ EOF
 call() {
     method=$1
     shift
-    resource=$1
-    shift
+    if [ $# -gt 0 ]
+    then
+        resource=$1
+        shift
+    fi
 
     proto=`echo $EASYENDPOINT | sed -e 's,:.*,,'`
     host=`echo $EASYENDPOINT | sed -e 's,^[a-z]*://\(.*\),\1,' -e 's,/.*,,'`

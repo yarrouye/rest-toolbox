@@ -1,5 +1,6 @@
 
 SED = /bin/sed
+TAR = /bin/sed
 
 include Makefile
 
