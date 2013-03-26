@@ -122,8 +122,8 @@ quote() {
 callcurl() {
     if [ $cooked -gt 0 ]
     then
-	hdrfile=`mktemp -t $me`
-	contentfile=`mktemp -t $me`
+	hdrfile=`mktemp $TMPDIR/$me.XXXXXX`
+	contentfile=`mktemp $TMPDIR/$me.XXXXXX`
 	trap "rm -f $hdrfile $contentfile" 0 1 2 3 4 5 6 7 8 15
 
 	curl ${1+"$@"} -D $hdrfile -o $contentfile
@@ -373,6 +373,8 @@ call() {
 		-*)
 		    nodatagiven=1
 		    ;;
+		"")
+		    ;;
 		*)
 		    data="$1"
 		    shift
@@ -392,7 +394,7 @@ call() {
                            || which vim || which vi) | tail -n 1`
 		if [ -n "$editor" ]
 		then
-		    tmpfile=`mktemp -t $me`
+		    tmpfile=`mktemp $TMPDIR/$me.XXXXXX`
 		    trap "rm -f $tmpfile" 0 1 2 3 4 5 6 7 8 15
 		    if [ -n "$nodata" ]
 		    then
@@ -425,7 +427,7 @@ call() {
 
     if [ -n "$dataopt" ]
     then
-        datafile=`mktemp -t $me`
+        datafile=`mktemp $TMPDIR/$me.XXXXXX`
         echo "$data" >$datafile
         data="$datafileprefix$datafile"
     fi

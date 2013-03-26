@@ -1,0 +1,5 @@
+
+SED = /bin/sed
+
+include Makefile
+
