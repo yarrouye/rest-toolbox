@@ -18,10 +18,12 @@ me=`basename $0`
 case "$me" in
     rest)
 	default_content=json
+	accept_json=1
 	default_baked=1
 	default_cooked=-1
 	;;
     *)
+	accept_json=0
 	default_baked=0
 	default_cooked=0
 	;;
@@ -41,7 +43,7 @@ usage() {
         u=u
         exec >&2
     fi
-    echo $u"sage: $me [--help] [-P | --print [-s] [-p prefix] [no]env,[no]func,all] [--cmd file | --script file] [--no-env] [--no-extras] [-j, --json | -f, --form | -a, --as-is ] [-B, --baked] [-W, --wet] [-C, --cooked] [-R, --raw] [-E, --endpoint endpoint] [-q, --query query] [-O, --override] [-V] method resource [data] [curlopt ...]"
+    echo $u"sage: $me [--help] [-P | --print [-s] [-p prefix] [no]env,[no]func,all] [--cmd file | --script file] [--no-env] [--no-extras] [-j, --json | -f, --form | -a, --as-is ] [-A] [-B, --baked] [-W, --wet] [-C, --cooked] [-R, --raw] [-E, --endpoint endpoint] [-q, --query query] [-O, --override] [-V] method resource [data] [curlopt ...]"
     if [ "$1" -eq 0 ]
     then
         cat <<EOF
@@ -54,6 +56,7 @@ usage() {
        -j, --json               Send and receive JSON data
        -f, --form               Send and receive form data
        -a, --as-is              Send and receive data without modifications
+       -A                       Accept all content types in responses
        -B, --baked              Bake data from command line
        -W, --wet	        Do not bake data from command line
        -C, --cooked             Cook response contents
@@ -425,7 +428,10 @@ call() {
     if [ "$content" = json ]
     then
 	contenthdr="Content-Type: application/json; charset=utf-8"
-	accepthdr="Accept: application/json; charset=utf-8"
+    fi
+    if [ -n "$accept" ]
+    then
+	accepthdr="Accept: $accept"
     fi
 
     if [ -n "$dataopt" ]
@@ -433,9 +439,12 @@ call() {
         datafile=`mktemp $TMPDIR/$me.XXXXXX`
         echo "$data" >$datafile
         data="$datafileprefix$datafile"
+        datadirective="$dataopt $data"
+    else
+	datadirective=
     fi
 
-    callcurl $mycurlopts $opt $dataopt $data \
+    callcurl $mycurlopts $opt $datadirective \
 	$xopt -H "$httpoverride" -H "$contenthdr" -H "$accepthdr" \
         $EASYCURLOPTS ${1+"$@"} $urlbase$resource$query
     res=$?
@@ -462,12 +471,16 @@ takeiteasy() {
 		    case "$l" in
 			j)
 			    content=json
+			    accept_json=1
 			    ;;
 			f)
 			    content=form
 			    ;;
 			a)
 			    content=asis
+			    ;;
+			A)
+			    accept=*/*
 			    ;;
 			B)
 			    baked=1
@@ -607,6 +620,7 @@ takeiteasy() {
 		;;
 	    --json)
 		content=json
+		accept_json=1
 		;;
 	    --form)
 		content=form
@@ -672,6 +686,10 @@ takeiteasy() {
     done
 
     : ${content:=$default_content}
+    if [ -z "$accept" -a $accept_json -eq 1  ]
+    then
+	accept="application/json; charset=utf-8"
+    fi
     : ${baked:=$default_baked}
     if [ $default_cooked -lt 0 ]
     then
@@ -859,4 +877,3 @@ then
 fi
 
 takeiteasy $EASYOPTS ${1+"$@"}
-
